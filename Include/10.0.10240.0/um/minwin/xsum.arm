@@ -1,0 +1,125 @@
+;++
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+; Module Name:
+;
+;   xsum_arm
+;
+; Abstract:
+;
+;   This module implements the platform specific function to compute the
+;   checksum of a buffer.
+;
+; Environment:
+;
+;   Any mode.
+;
+
+#include "ksarm.h"
+
+        TEXTAREA
+        
+;++
+;
+; ULONG
+; tcpxsum(
+;    IN ULONG Checksum,
+;    IN PUCHAR Source,
+;    IN ULONG Length
+;    )
+;
+; Routine Description:
+;
+;    This function computes the checksum of the specified buffer and combines
+;    the computed checksum with the specified checksum.
+;
+; Arguments:
+;
+;    Checksum (r0) - Suppiles the initial checksum value, in 16-bit form,
+;            with the high word set to 0.
+;
+;    Source (r1) - Supplies a pointer to the checksum buffer.
+;
+;    Length (r2) - Supplies the length of the buffer in bytes.
+;
+; Return Value:
+;
+;    The computed checksum, in 16-bit form, with the high word set to 0.
+;
+;--
+
+        NESTED_ENTRY tcpxsum
+
+        cmp     r2, #16                                 ; less than 16 bytes?
+        uxth    r0, r0                                  ; truncate incoming checksum to 16 bits
+        pld     [r1]                                    ; preload the first cache line
+        blo     Sum8                                    ; if so, skip all NEON stuff
+
+        vmov.f32 q2, #0                                  ; clear out checksum
+        subs    r2, r2, #32                             ; pre-decrement to simplify the loop
+        blo     Sum16                                   ; skip over the loop if we don't have enough
+        subs    r2, r2, #32                             ; pre-decrement to simplify the loop
+        pld     [r1, #32]                               ; pre-load one block ahead
+        blo     Sum32                                   ; skip over the loop if we don't have enough
+Loop
+        pld     [r1, #64]                               ; prefetch ahead
+        subs    r2, r2, #32                             ; count the bytes for this block
+        vld1.8  {d0-d3}, [r1]!                          ; fetch 32 bytes (16 words) in q0-q1
+        vpadal.u32 q2, q0                               ; add neighboring 32-bit pairs, and
+        vpadal.u32 q2, q1                               ;   accumulate 64-bit results in q2
+        bhs     Loop                                    ; keep going until we're done
+Sum32
+        vld1.8  {d0-d3}, [r1]!                          ; fetch 32 bytes (16 words) in q0-q1
+        vpadal.u32 q2, q0                               ; add neighboring 32-bit pairs, and
+        vpadal.u32 q2, q1                               ;   accumulate 64-bit results in q2
+Sum16
+        tst     r2, #16                                 ; chunk of 16 remaining?
+        beq     NeonEnd                                 ; skip if not
+        vld1.8  {d0-d1}, [r1]!                          ; fetch 16 bytes (8 words) in q0
+        vpadal.u32 q2, q0                               ; add neighboring 32-bit pairs, and accumulate
+NeonEnd
+        vpaddl.u32 q2, q2                               ; add upper 32 bits to lower 32 bits
+        vpaddl.u32 q2, q2                               ; once again to handle potential carries
+        vpaddl.u16 q2, q2                               ; add upper 16 bits to lower 16 bits
+        vzip.32 q2, q0                                  ; lower result in q2, upper result in q0
+        vadd.i32 q2, q0                                 ; add the two
+        vmov    r3, s8                                  ; get final result in r3
+        adds    r0, r0, r3                              ; add to initial checksum
+Sum8
+        tst     r2, #8                                  ; chunk of 8 remaining?
+        beq     Sum4                                    ; skip if not
+        ldr     r3, [r1]                                ; fetch 4 bytes
+        ldr     r12, [r1, #4]                           ; fetch 4 bytes
+        adds    r1, r1, #8                              ; advance
+        uxtah   r0, r0, r3                              ; add lower 16 bits
+        uxtah   r0, r0, r3, ror #16                     ; add upper 16 bits
+        uxtah   r0, r0, r12                             ; add lower 16 bits
+        uxtah   r0, r0, r12, ror #16                    ; add upper 16 bits
+Sum4
+        tst     r2, #4                                  ; chunk of 4 remaining?
+        beq     Sum2                                    ; skip if not
+        ldr     r3, [r1]                                ; fetch 4 bytes
+        adds    r1, r1, #4                              ; advance
+        uxtah   r0, r0, r3                              ; add lower 16 bits
+        uxtah   r0, r0, r3, ror #16                     ; add upper 16 bits
+Sum2
+        tst     r2, #2                                  ; chunk of 2 remaining?
+        beq     Sum1                                    ; skip if not
+        ldrh    r3, [r1]                                ; fetch 2 bytes
+        adds    r1, r1, #2                              ; advance
+        adds    r0, r0, r3                              ; add them as well
+Sum1
+        tst     r2, #1                                  ; chunk of 1 remaining?
+        beq     Exit                                    ; skip if not
+        ldrb    r3, [r1]                                ; fetch 2 bytes
+        adds    r0, r0, r3                              ; add them as well
+Exit
+        adds    r0, r0, r0, lsl #16                     ; add lower half to upper half
+        uxth    r0, r0, ror #16                         ; bring the result back down
+        adcs    r0, r0, #0                              ; add in the carry
+        bx      lr
+
+        NESTED_END tcpxsum
+
+        END
