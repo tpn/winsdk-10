@@ -1,0 +1,75 @@
+//
+//    Copyright (C) Microsoft.  All rights reserved.
+//
+cpp_quote("#include <winapifamily.h>")
+
+#pragma region Desktop Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)")
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+//
+// Information for calling InternetSetCookieEx to set a proof of possession cookie. 
+// 
+typedef struct ProofOfPossessionCookieInfo
+{
+    LPWSTR name;
+    LPWSTR data;
+    DWORD  flags; // Flags that control how InternetSetCookieEx sets cookie data (e.g., INTERNET_COOKIE_*)
+    LPWSTR p3pHeader;
+} ProofOfPossessionCookieInfo;
+
+cpp_quote("__inline void FreeProofOfPossessionCookieInfoArray(_In_reads_(cookieInfoCount) ProofOfPossessionCookieInfo* cookieInfo, DWORD cookieInfoCount)")
+cpp_quote("{                                                ")
+cpp_quote("     DWORD i;                                    ")
+cpp_quote("     for (i = 0; i < cookieInfoCount; i++)       ")
+cpp_quote("     {                                           ")
+cpp_quote("         CoTaskMemFree(cookieInfo[i].name);      ")
+cpp_quote("         CoTaskMemFree(cookieInfo[i].data);      ")
+cpp_quote("         CoTaskMemFree(cookieInfo[i].p3pHeader); ")
+cpp_quote("     }                                           ")
+cpp_quote("     CoTaskMemFree(cookieInfo);                  ")
+cpp_quote("}                                                ")
+
+//
+// Interface to get information for creating proof of possession cookies. 
+// 
+[
+    object,
+    uuid(CDAECE56-4EDF-43DF-B113-88E4556FA1BB),
+    pointer_default(unique)
+]
+interface IProofOfPossessionCookieInfoManager : IUnknown 
+{
+    // 
+    // Gets cookie information corresponding to the supplied URI.
+    // A case sensitive string search is performed on the supplied URI.
+    // Free the returned array using FreeProofOfPossessionCookieInfoArray().
+    // 
+    HRESULT GetCookieInfoForUri(
+        [in]                        LPCWSTR                             uri,
+        [out]                       DWORD*                              cookieInfoCount,
+        [out, size_is(,*cookieInfoCount)] ProofOfPossessionCookieInfo** cookieInfo);
+};
+
+//
+// Cookie Information Manager type library. 
+// 
+[
+    uuid(7681A019-8F51-4594-9507-F27040F71F01),
+    version(1.0)
+]
+library ProofOfPossessionCookieInfoManagerLib
+{
+    [
+        uuid(A9927F85-A304-4390-8B23-A75F1C668600)
+    ]
+    coclass ProofOfPossessionCookieInfoManager
+    {
+        [default] interface IProofOfPossessionCookieInfoManager;
+    };
+};
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */")
+#pragma endregion

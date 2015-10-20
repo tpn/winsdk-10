@@ -1,0 +1,1090 @@
+//  Interface to the Bluetooth Connection Manager
+
+// ----------------------------------------------------------------------------------------------------
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Forward definitions:
+
+typedef enum BLUETOOTH_RADIO_STATE BLUETOOTH_RADIO_STATE;                   // state of the radio
+typedef enum INQUIRY_MODE INQUIRY_MODE;                                     // radio's inquiry mode
+typedef enum DISCOVERY_MODE DISCOVERY_MODE;                                 // radio's discovery mode
+typedef enum BLUETOOTH_DEVICE_STATE BLUETOOTH_DEVICE_STATE;                 // state of a remote bluetooth device
+typedef enum BLUETOOTH_CONNECTION_STATE BLUETOOTH_CONNECTION_STATE;         // state of a connection
+typedef enum BLUETOOTH_DEVICE_INTERFACE_FLAG BLUETOOTH_DEVICE_INTERFACE_FLAG; // bluetooth base band flags - bitwise OR of LE,BR,Dual,PrivateAddressType or unknown
+
+
+interface IBtRadioController;               // implemented by BtConnectionManager
+interface IBtConnectionObserver;            // implemented by BtConnectionManager
+interface IBtConnectionResponder;           // implemented by BtConnectionManager
+interface IBtPairingRequest;                // implemented by BtConnectionManager
+interface IBtScoAudioDevice;                // implemented by BtConnectionManager
+interface IBtRegisterTrigger;               // implemented by BtConnectionManager
+
+interface IBtCommandCallback;               // implemented by clients of IBtRadioController
+interface IBtConnectionObserverCallback;    // implemented by clients of IBtConnectionObserver
+interface IBtConnectionObserverCallback2;   // implemented by clients of IBtConnectionObserver (optional)
+interface IBtConnectionResponderCallback;   // implemented by clients of IBtConnectionResponder
+interface IBtPairingRequestCallback;        // implemented by clients of IBtPairingRequest
+interface IBtIncomingPairingCallback;       // implemented by clients of IBtRadioController
+interface IBtScoAudioDeviceCallback;        // implemented by clients of IBtScoAudioDevice
+interface IBtRegisterTriggerCallback;       // implemented by clients of IBtRegisterTrigger
+
+// ----------------------------------------------------------------------------------------------------
+
+//  External definitions: Type imports from Winsock2. MIDL needs these, but the C++ compiler
+//  must not see these, lest it complain of a duplicate struct definition.
+
+cpp_quote("#if NEVER")
+
+typedef enum AUTHENTICATION_REQUIREMENTS { x } AUTHENTICATION_REQUIREMENTS;     // see BluetoothAPIs.h
+typedef INT_PTR MIDL_PVOID;
+typedef INT_PTR MIDL_HANDLE;
+typedef UINT_PTR SOCKET;
+typedef ULONGLONG BTH_ADDR;
+
+typedef struct _SOCKADDR_BTH
+{
+    USHORT      addressFamily;  // Always AF_BTH
+    BTH_ADDR    btAddr;         // Bluetooth device address
+    GUID        serviceClassId; // [OPTIONAL] system will query SDP for port
+    ULONG       port;           // RFCOMM channel or L2CAP PSM
+} SOCKADDR_BTH, *PSOCKADDR_BTH;
+
+cpp_quote("#else")
+cpp_quote("#include <BluetoothAPIs.h>")
+cpp_quote("typedef void* MIDL_PVOID;")
+cpp_quote("typedef HANDLE MIDL_HANDLE;")
+cpp_quote("#define E_NOT_READY HRESULT_FROM_WIN32(ERROR_NOT_READY)")
+cpp_quote("#define E_NOT_AUTHENTICATED HRESULT_FROM_WIN32(ERROR_NOT_AUTHENTICATED)")
+cpp_quote("#endif")     // matches #if NEVER
+
+// ----------------------------------------------------------------------------------------------------
+
+//  The current state of the Bluetooth radio:
+
+enum BLUETOOTH_RADIO_STATE
+{
+    BRS_UNKNOWN,            // radio state is unknown (connection manager service is not running)
+
+    BRS_NO_HARDWARE,        // no Bluetooth hardware exists on this phone
+
+    BRS_DISABLED,           // the Bluetooth radio is disabled (off)
+
+    BRS_ENABLING,           // the Bluetooth radio is being turned on, but is not yet usable
+
+    BRS_ENABLED,            // the Bluetooth radio is enabled and usable
+
+    BRS_DISABLING,          // the Bluetooth radio is being turned off, but has not completed yet
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  The inquiry mode for our Bluetooth radio:
+
+enum INQUIRY_MODE
+{
+    IM_NONE,                // no inquiry: we're not looking for unpaired remote devices.
+
+    IM_LIMITED,             // we're sending limited inquiry packets; only devices in limited discovery mode will respond.
+
+    IM_GENERAL,             // we're sending general inquiry packets; devices in general or limited discovery mode will respond.
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  The discovery mode for our Bluetooth radio:
+
+enum DISCOVERY_MODE
+{
+    DM_NONE,                // not discoverable: we won't answer any inquiry packets.
+
+    DM_GENERAL,             // general discoverable: we will answer general inquiry packets only.
+
+    DM_LIMITED,             // limited discoverable: we will answer both general and limited inquiry packets.
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  The state of a remote Bluetooth device:
+
+enum BLUETOOTH_DEVICE_STATE
+{
+    BDS_NOT_VISIBLE,        // device is not paired and not being seen by inquiry (reported only when
+                            // some previous state was reported for the device
+
+    BDS_VISIBLE,            // device is not paired, and is being seen by inquiry
+
+    BDS_PAIRED,             // device is paired, but not currently connected
+
+    BDS_PAIRING,            // device is being paired
+
+    BDS_CONNECTING,         // paired device is being connected
+
+    BDS_CONNECTED,          // device is paired and connected
+
+    BDS_DISCONNECTING,      // paired device is being disconnected
+
+    BDS_UNPAIRING,          // paired device is being unpaired
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  The current state of a Bluetooth profile connection:
+
+enum BLUETOOTH_CONNECTION_STATE
+{
+    BCS_DISCONNECTED,       // not currently connected
+
+    BCS_CONNECTING,         // connection is being established, but does not yet work
+
+    BCS_CONNECTED,          // connection is established
+
+    BCS_DISCONNECTING,      // connection is being disconnected
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+// Bluetooth interface type - LE, BR, DualMode, Unknown - the enum values for BDIF_TYPE_BR/BDIF_TYPE_LE below must match BDIF_BR/BDIF_LE values in bthdef.h
+
+enum BLUETOOTH_DEVICE_INTERFACE_FLAG
+{
+     BDIF_FLAG_UNKNOWN = (0x00000000), // unknown interface type - default
+     BDIF_FLAG_BR      = (0x00004000), // Bluetooth classic - basic rate 
+     BDIF_FLAG_LE      = (0x00008000), // Bluetooth LE
+     BDIF_FLAG_LE_RANDOM_ADDRESS_TYPE = (0x00100000) // Bluetooth LE random address marker
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+typedef struct _BLUETOOTH_PAIRING_OOB_DATA
+{
+    DWORD dwIfFlags;
+
+    [switch_type(DWORD),switch_is(dwIfFlags & (BDIF_FLAG_BR|BDIF_FLAG_LE))]
+    union 
+    {
+        [case(BDIF_FLAG_LE)]
+            UCHAR TK[16]; //LE temporary key
+        [default]
+            struct _OOB_DATA {
+                UCHAR       C[16]; // Simple Pairing Hash value
+                UCHAR       R[16]; // Simple Pairing Randomizer value
+            } OOB_DATA; // BR      
+    };
+
+} BLUETOOTH_PAIRING_OOB_DATA, *PBLUETOOTH_PAIRING_OOB_DATA;
+
+
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Use this interface to control the state of the Bluetooth radio. CoCreateInstance BtConnectionManager
+//  to acquire an instance of this interface.
+
+[object, uuid("bb431756-4878-46c3-a8fc-ec95ff2df54d"), pointer_default(unique)]
+interface IBtRadioController : IUnknown
+{
+    // Turn radio on or off. This method will always return promptly, before the actual change takes place.
+    // If it returns S_OK, the callback (if specified) will be called on an arbitrary thread after
+    // the change has in fact been initiated (or after the attempt to change has been rejected.) The callback
+    // may or may not occur inline, on the caller's thread.
+    // This call requires ID_CAP_BLUETOOTH_ADMIN capability.
+    // Results:
+    //  S_OK:   The request has been accepted. The eventual success or failure of the request
+    //          will be reported via a call to IBtCommandCallback::CommandCompleted.
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    HRESULT EnableBluetoothRadio (
+        [in] BOOLEAN fEnable,               // TRUE to enable the radio, FALSE to disable it
+        [in] IBtCommandCallback* pCallback, // Callback to call upon completion; NULL if no callback is desired
+        [in] MIDL_PVOID pvContext );        // context to pass to the callback function
+
+
+    // Set our inquiry mode. During inquiry mode, the phone is actively looking for nearby
+    // Bluetooth devices. Requests for inquiry are tracked per BTCM client -- the phone will
+    // remain in inquiry mode as long as any client requests it. If a client terminates before turning off
+    // inquiry, it will automatically be turned off on his behalf. The radio will be placed into limited
+    // discovery mode only if EVERY client requests it; otherwise the radio will be placed into general
+    // discovery mode. (Limited inquiry finds only limited discoverable devices; general inquiry finds
+    // both general and limited discovery devices.)
+    // This call requires ID_CAP_BLUETOOTH_ADMIN capability. Otherwise, the call is a no-op.
+    // Results:
+    //  S_OK: Normal operation; the request will soon be acted upon.
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    //  E_NOT_READY: BTCM Service is not running
+    HRESULT SetInquiryMode(
+        [in] INQUIRY_MODE eMode );          // Inquiry mode desired by this client
+
+
+    // Set our discoverability mode. When discoverable, the phone will respond to other devices'
+    // Inquiry packets. Requests for discoverability are tracked per BTCM client -- the phone will
+    // remain discoverable as long as any client requests it. If a client terminates before turning off
+    // discovery, it will automatically be turned off on his behalf. The radio will be placed into
+    // limited discoverable mode if ANY client requests it; otherwise the radio will be placed into
+    // general discovery mode. (Limited discovery responds to both general and limited inquiries;
+    // general discovery only responds to general inquiries.)
+    // This call requires ID_CAP_BLUETOOTH_ADMIN capability. Otherwise, the call is a no-op.
+    // Results:
+    //  S_OK: Normal operation; the request will soon be acted upon.
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    HRESULT SetDiscoveryMode(
+        [in] DISCOVERY_MODE eMode );        // Discovery mode requested by this client
+
+
+    // Retrieve a reference to an object that can be used to pair a remote device. The returned
+    // interface reference can be used for only one authentication attempt.
+    // Results:
+    //  S_OK: Pairing request is created
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    HRESULT CreatePairingRequest(
+        [in] BTH_ADDR btAddr,                           // Address of device to be paired
+        [in] IBtPairingRequestCallback* pCallback,      // interface to call for authentication and completion
+        [out] IBtPairingRequest** ppPairingRequest );   // returned interface pointer
+
+
+    // Unpair a device. If the caller has ID_CAP_BLUETOOTH_ADMIN capability, this method
+    // initiates unpairing a remote device. Otherwise, it does nothing.
+    // Result:
+    //  S_OK: Request has been accepted.
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    HRESULT UnpairDevice(
+        [in] BTH_ADDR btAddr );                         // Address of device to unpair.
+
+
+    // Attempt to connect a (previously-paired) device. If the caller has ID_CAP_BLUETOOTH_ADMIN capability,
+    // this method will initiate the connection attempt. Otherwise, it does nothing.
+    // Result:
+    //  S_OK: Request has been accepted.
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    HRESULT ConnectDevice(
+        [in] BTH_ADDR btAddr );                         // Address of device to connect.
+
+    // Attempt to disconnect a (connected) device. If the caller has ID_CAP_BLUETOOTH_ADMIN capability,
+    // this method will initiate the disconnection attempt. Otherwise, it does nothing.
+    // Result:
+    //  S_OK: Request has been accepted.
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    HRESULT DisconnectDevice(
+        [in] BTH_ADDR btAddr );                         // Address of device to disconnect.
+
+    // Register to be notified of incoming pairing requests. Each time an incoming pairing request is received,
+    // the object that you register here will be called. Only one such callback may be registered at a time;
+    // registering a new one implicitly unregisters the previous one.
+    // Result:
+    //  S_OK: Request has been accepted.
+    //  E_NOT_VALID_STATE: Shutdown has previously been called by this client.
+    HRESULT RegisterForIncomingPairing(
+        [in] IBtIncomingPairingCallback* );
+
+    // Unregister for notification of incoming pairing requests. After this call, you will no longer
+    // receive notification of incoming pairing attempts. This does nothing if you are not already
+    // registered.
+    // Result:
+    // S_OK: Always
+    HRESULT UnregisterForIncomingPairing();
+
+    // Create a kernel-mode SCO audio device in bypass mode. This device lasts until either
+    // your process dies, you release the returned IBtScoAudioDevice interface, or you
+    // call IBtScoAudioDevice::DestroyDevice.
+    // Result:
+    // S_OK: Success
+    // E_NOT_AUTHORIZED: Caller does not have ID_CAP_BLUETOOTH_ADMIN privilege
+    HRESULT CreateScoAudioDevice(
+        [in] BTH_ADDR btAddr,                           // Address of Bluetooth device to control
+        [in] UINT16 hfSupportedFeatures,                // bitmask of the features supported by the handsfree device
+        [in] BOOLEAN fHeadset,                          // true iff the device is a headset; false if an audible speaker
+        [in] IBtScoAudioDeviceCallback* pCallback,      // interface on which to send signals
+        [out] IBtScoAudioDevice** ppConnection );       // interface on which to control connections
+
+    // Retrieves the address of the Bluetooth radio
+    // Result: S_OK
+    HRESULT GetBluetoothAddress(
+        [out] BTH_ADDR *btAddr );                       // Address of the Bluetooth radio
+
+    // Shutdown operation of this object. Must be called once (on any interface) before final
+    // release of the connection manager object. This function will perform the shutdown
+    // asynchronously. It will NOT ensure that all retained interface
+    // pointers will have been released before returning. It is acceptable to call this
+    // routine more than once.
+    //  Result: S_OK
+    HRESULT Shutdown();
+
+    HRESULT SynchronousShutdown(DWORD dwTimeout);
+};
+
+[object, uuid("FD650A7D-78F9-4800-AE38-068181784B93"), pointer_default(unique)]
+interface IBtRadioControllerV2 : IUnknown
+{
+    // Create a kernel-mode SCO audio device in bypass mode. This device lasts until either
+    // your process dies, you release the returned IBtScoAudioDevice interface, or you
+    // call IBtScoAudioDevice::DestroyDevice.
+    // Result:
+    // S_OK: Success
+    // E_NOT_AUTHORIZED: Caller does not have ID_CAP_BLUETOOTH_ADMIN privilege
+    HRESULT CreateScoAudioDevice(
+        [in] BTH_ADDR btAddr,                           // Address of Bluetooth device to control
+        [in] UINT16 hfSupportedFeatures,                // bitmask of the features supported by the handsfree device
+        [in] BOOLEAN fHeadset,                          // true iff the device is a headset; false if an audible speaker
+        [in] IBtScoAudioDeviceCallback* pCallback,      // interface on which to send signals
+        [out] IBtScoAudioDevice** ppConnection);       // interface on which to control connections
+
+    // Retrieves the address of the Bluetooth radio
+    // Result: S_OK
+    HRESULT GetBluetoothAddress(
+        [out] BTH_ADDR *btAddr);                       // Address of the Bluetooth radio
+
+    // Shutdown operation of this object. Must be called once (on any interface) before final
+    // release of the connection manager object. This function will perform the shutdown
+    // asynchronously. It will NOT ensure that all retained interface
+    // pointers will have been released before returning. It is acceptable to call this
+    // routine more than once.
+    //  Result: S_OK
+    HRESULT Shutdown();
+
+    HRESULT SynchronousShutdown(DWORD dwTimeout);
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Pass an instance of this interface to IBtRadioController::EnableBluetoothRadio, in order to
+//  receive a callback when the outcome of a request is known.
+
+[object, uuid("0eba760c-c48d-4811-b4c4-8ce879b201b1"), pointer_default(unique)]
+interface IBtCommandCallback : IUnknown
+{
+    // Report the result of a previous command. The connection manager will ignore the
+    // return result of this call.
+    // dwError may be one of:
+    //  S_OK: The request has completed
+    //  E_ACCESSDENIED:     The caller does not have ID_CAP_BLUETOOTH_ADMIN
+    //  E_NOT_VALID_STATE:  Shutdown() has been called
+    //  E_ABORT:            Request was aborted due to a subsequent call to SetRadioState().
+    //  E_NOT_READY:        BTCM Service is not running
+
+    HRESULT CommandCompleted (
+        [in] MIDL_PVOID pvContext,          // pvContext paramerter to EnableBluetoothRadio
+        [in] HRESULT hrError );             // error code for the original command.
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Anyone can use this interface in order to be notified of changes in the
+//  state of Bluetooth radios and/or connecions. CoCreateInstance BtConnectionManager
+//  to acquire an instance of this interface.
+
+[object, uuid("83c91970-1d3d-48e3-859f-436eb34f34fd"), pointer_default(unique)]
+interface IBtConnectionObserver : IUnknown
+{
+    // Register a callback that will receive information about the current state, and changes to
+    // the state of the Bluetooth radio and connections. The passed pCallback object may optionally
+    // implement IBtConnectionObserverCallback2 in addition to IBtConnectionObserverCallback. If
+    // it does so, the object will receive additional notifications.
+    //  Return codes: S_OK: successfully registered
+    //  E_NOT_VALID_STATE: Shutdown has been called
+    HRESULT RegisterCallback(
+        [in] IBtConnectionObserverCallback* pCallback,  // interface to call with data
+        [out] INT_PTR* pRegistrationHandle );           // handle to use at unregistration time
+
+    // Unregister a callback. Note that due to race conditions, the callback may still be
+    // called after this function returns.
+    // Return codes:
+    //  S_OK: Callback is unregistered
+    HRESULT UnregisterCallback(
+        [in] INT_PTR registrationHandle );              // value received from RegisterCallback
+
+    // Shutdown operation of this object. Must be called once (on any interface) before final
+    // release of the connection manager object.  This function will perform the shutdown
+    // asynchronously. It will NOT ensure that all retained interface
+    // pointers will have been released before returning. It is acceptable to call this
+    // routine more than once.
+    //  Result: S_OK
+    HRESULT Shutdown();
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Callback interface for use with IBtConnectionObserver::RegisterCallback. Clients of
+//  RegisterCallback MUST implement this interface.
+
+//  All of the callback routines in this interface SHOULD return promptly. That is, they should
+//  not wait for an external event before returning. The absolutely MUST NOT wait for any event
+//  that might require interaction with the Bluetooth connection manager before returning.
+//  However, they MAY call any BtConnectionManager method except for Shutdown().
+
+//  Shortly after registering the callback, a client can expect to see one call to RadioStateChanged,
+//  and zero or more calls to AclConnectionChanged, ScoConnectionChanged, and/or ProfileConnectionChanged,
+//  informing the client of the state as of the time of registration. These calls will be followed
+//  by a call to InitializationComplete. At that time, the client can assume that he has complete
+//  knowledge of the Bluetooth state.
+
+//  Thereafter, the client will receive calls shortly after anything changes.
+
+//  If the connection manager service fails, the client will receive a call to RadioStateChanged
+//  with a state of BRS_UNKNOWN. When this occurs, a client should (pessimistically) assume
+//  that every connection has disconnected -- he may not receive separate calls about these.
+//  Eventually, when the connection manager service restarts, the client will receive a new
+//  sequence of calls containing the complete state of Bluetooth, followed by a new call
+//  to InitializationComplete.
+
+//  All of these calls will occur on arbitrary threads, but they will be serialied (no two
+//  callbacks for the same registration will execute at the same time).
+
+//  The connection manager may report redundant changes (for example, it might report that
+//  a connection has changed state even though the newly reported state is the same as the
+//  previously reported state.) Clients must be prepared to cope with this.
+
+[object, uuid("3d6da6ca-8b2d-4c38-bbd9-7b2c53105423"), pointer_default(unique)]
+interface IBtConnectionObserverCallback : IUnknown
+{
+    HRESULT RadioStateChanged( [in] BLUETOOTH_RADIO_STATE state );
+    HRESULT RemoteDeviceChanged( [in] BTH_ADDR btAddr, [in] BLUETOOTH_DEVICE_STATE eState, [in] DWORD dwClassOfDevice, [in] LPCWSTR wszName );
+    HRESULT ProfileConnectionChanged( [in] BTH_ADDR btAddr, [in] REFGUID guidProfile, [in] BLUETOOTH_CONNECTION_STATE eState );
+    HRESULT InitializationComplete();
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+// Additional callback interface for use with IBtConnectionObserver::RegisterCallback. Clients of
+// RegisterCallback MAY optionally implement this interface.
+
+// All of the rules for methods of IBtConnectionObserverCallback also apply to this interface.
+
+// The new methods RssiChanged and AdvertisingDataChanged will only be called for
+// BluetoothLE devices, and will only be called if the client has called SetInquiryMode
+// with a mode other than IM_NONE.
+
+// Signal strength is the received signal strength, in dB. It is always in the range -128 .. +127.
+// See the Belutooth Core Specification 4.0 or later for details.
+
+[object, uuid("cbbc9044-eed8-49bd-bd3a-887ad84ac3f5"), pointer_default(unique)]
+interface IBtConnectionObserverCallback2 : IUnknown
+{
+    HRESULT SignalStrengthChanged( [in] BTH_ADDR btAddr, [in] int iSignalStrength );
+    HRESULT AdvertisingDataChanged([in] BTH_ADDR btAddr, [in] unsigned int cbData, [in] const BYTE* pbData);
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Interface IBtConnectionResponder is for use by services that implement profiles. Once can acquire
+//  an instance of this interface from CoCreateInstance(BtConnectionManager).
+
+//  Generally, the connection manager will create listening sockets (or the equivalent for L2Cap) on
+//  behalf of profiles, and will notify the profile code of an incoming connection. It will also
+//  notify the profile of when it is likely to be useful to establish an outgoing connection.
+
+//  Profiles register their desire for these services by creating the following registry entries at
+//  build or installation time:
+//  [HKLM\\SYSTEM\\CurrentControlSet\\Services\\BtConnectionManager\\Parameters\\Services\\{protocol-guid}]
+//      Service=REG_SZ:"windows-service-name"
+//      SdpRecord=REG_BINARY:xx xx xx xx  -- SDP record for the profile
+//      (other values TBD)
+
+//  For each such entry, the connection manager will:
+//      1. Create a listening socket (or equivalent for L2CAP).
+//      2. If the SDP record contains a non-zero RFCOMM channel or L2CAP psm, bind the socket to that channel.
+//      3. If the SDP record contains a zero RFCOMM channel or L2CAP psm, bind the socket to an arbitrary
+//         channel/psm, and update the SDP record.
+//      4. Publish the SDP record.
+
+//  Whenever an incoming connection is received on any of these sockets, the connection manager will:
+//      1. Accept the incoming connection.
+//      2. Start the related service, if it is not already started.
+//      3. Wait a modest amount of time for the service to call IBtConnecxtionResponder::RegisterCallback,
+//         if it hasn't ready.
+//      4. Duplicate the socket into the service's process, and arrange to call the client's
+//         IBtConnectionResponderCallback::IncomingXXXConnection method.
+
+//  When an outgoing Bluetooth connection is established and the remote device contains an appropriate
+//  SDP record, the connection manager will arrange to call the client's SuggestXXXConnect
+//  method. The connectio manager will also arrange to call this routine after receiving an incoming ACL
+//  connection, if no connection has been created within a small amount of time.
+
+[object, uuid("4d1ac687-509c-48f7-a7bb-fe2b83a9c7dc"), pointer_default(unique)]
+interface IBtConnectionResponder : IUnknown
+{
+    // Register the responder's callback. This may require certain security privileges, TBD.
+    // If registration fails, the client will hear about it via a call to the callback's
+    // RegistrationFailed method.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Shutdown has been called
+    HRESULT RegisterCallback(
+        [in]  REFGUID guidProfile,
+        [in]  IBtConnectionResponderCallback* pCallback,
+        [out] INT_PTR* pRegistrationHandle );
+
+    // Unregister the responder's callback. Due to race conditions, callbacks may occur
+    // even after this routine has returned. The callback object MUST continue to exist
+    // as long as its reference count is non-zero.
+    // Result: S_OK, E_HANDLE.
+    HRESULT UnregisterCallback( [in] INT_PTR registrationHandle );
+
+    // Inform connection manager of the state of a profile connection. This is primarily
+    // for the benefit of clients of IBtConnectionObserver.
+    // Result:
+    //  S_OK: Success.
+    HRESULT SetProfileState( [in] BTH_ADDR btAddr, [in] REFGUID guidProfile, [in] BLUETOOTH_CONNECTION_STATE eState );
+
+    // Connect this registered profile to the specified device.
+    // 
+    // Attempt to connect this profile to the specified device. If the caller has ID_CAP_BLUETOOTH_ADMIN capability,
+    // this method will initiate the connection attempt. Otherwise, it does nothing.
+    // Result:
+    //  S_OK: Request has been accepted. IBtCommandCallback to report completion of the request.
+    //  E_NOT_VALID_STATE: Shutdown has been called
+    //
+    HRESULT ConnectProfileToDevice(
+        [in] BTH_ADDR btAddr,               // Address of device to connect to.
+        [in] REFGUID  guidProfile,          // UUID of profile to connect
+        [in] IBtCommandCallback* pCallback, // Callback to call upon completion; NULL if no callback is desired
+        [in] MIDL_PVOID pvContext );        // context to pass to the callback function
+
+    // Shutdown operation of this object. Must be called once (on any interface) before final
+    // release of the connection manager object.  This function will perform the shutdown
+    // asynchronously. It will NOT ensure that all retained interface
+    // pointers will have been released before returning. It is acceptable to call this
+    // routine more than once.
+    //  Result: S_OK
+    HRESULT Shutdown();
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Callback interface implemented by profile code. The connection manager will call these
+//  routines as appropriate.
+
+//  Each of these routines MUST return promptly. That is, they should not wait for an
+//  external event before returning. They absolutely MUST NOT wait for an event that
+//  requires the services of the connection manager to complete.
+
+//  However, they MAY call any connection manager method as needed, except for Shutdown.
+
+[object, uuid("eb794a01-e173-4d1e-9cd4-2037cdb529e3"), pointer_default(unique)]
+interface IBtConnectionResponderCallback : IUnknown
+{
+    // AcceptRfcommConnection is called to inform the profile of a new incoming or outgoing
+    // RFCOMM connection. If the callee returns S_OK, he assumes
+    // ownership of the socket, and MUST eventually close it. If the callee returns
+    // any error, the connection manager will close the socket.
+    //
+    // If the profile is already connected to a different device, then the profile
+    // must make a decision as to whether to:
+    //   1. Refuse this new connection request (i.e. keep the existing connection), or
+    //   2. Disconnect the existing connection and then accept this new connection, or
+    //   3. Keep the current connection and accept this new connection.
+    //
+    // Option #3 is only possible if the profile can handle multiple simultaneous connections. (e.g. PBAP)
+    //
+    // Option #1 is probably the right choice if the profile supports only 1 connection at a time (e.g. HFP)
+    // and fIncoming is TRUE. That is, don't allow the remote device to cause the currently connected device to disconnect.
+    //
+    // Option #2 is the right choice if the profile supports only 1 connection at a time and fIncoming is FALSE.
+    // That is, the user has taken some action on the phone (tap to connect) indicating he wants to connect to the new device,
+    // so the user wants to disconnect from the old device.
+    //
+    HRESULT AcceptRfcommConnection (
+        [in] SOCKET socket,                     // newly created socket for the connection
+        [in] const SOCKADDR_BTH* pRemoteAddr,   // address of the remote device
+        [in] const WCHAR* remoteDeviceName,     // Name of the remote device
+        [in] BOOLEAN fIncoming );               // true if socket is incoming, false if socket is outgoing
+
+    // Accept an incoming L2CAP connection. If the callee returns S_OK, he assumes
+    // ownership of the handle, and MUST eventually close it. If the callee returns
+    // any error, the connection manager will close the handle.
+    HRESULT AcceptL2CapConnection(
+        [in] MIDL_HANDLE handle,                // handle to newly created connection
+        [in] BTH_ADDR btAddr,                   // address of the remote device
+        [in] int psm,                           // PSM for the connection
+        [in] int outgoingMtu,                   // max size of outgoing packets
+        [in] int incomingMtu,                   // max size of incoming packets
+        [in] BOOLEAN fIncoming );               // true if connection is incoming, false if outgoing
+
+    // Disconnect a connection.
+    HRESULT DisconnectConnection(
+        [in] BTH_ADDR btAddr );                     // address of the remote device
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Interface IBtPairingRequest is used by code that wants to initiate pairing with
+//  a remote Bluetooth device. A client acquires a reference to this interface by
+//  calling IBtRadioController::CreatePairingRequest; this reference is useful for
+//  only one pairing attempt. If you decide to retry, you need to Release the
+//  pairing request object and create another.
+//
+//  The calling sequence is as follows:
+//
+//  0. The client creates a pairing request by calling IBtRadioController::CreatePairingRequest.
+//
+//  1. The client initiates pairing by calling StartPairing.
+//
+//  2. If authentication information is required, BTCM calls one of the callbacks:
+//     GetPin, ShowPasskey or CompareNumber.
+//
+//  3. If BTCM calls GetPin, the client must call SetPin or FailAuthentication.
+//     If BTCM calls CompareNumber, the client must call AcceptPairing or FailAuthentication.
+//
+//  4. BTCM calls the callback function OutgoingPairingCompleted, reporting success or failure.
+
+[object, uuid("eb7c310f-c408-43fe-98e6-4b9bae958c41"), pointer_default(unique)]
+interface IBtPairingRequest : IUnknown
+{
+    // Initiate the pairing operation.
+    // Results:
+    //  S_OK: Pairing is being initiated
+    //  E_NOT_VALID_STATE: Shutdown has been called, or StartPairing has already been called for this object.
+    HRESULT StartPairing(
+        [in] AUTHENTICATION_REQUIREMENTS eRequirements,     // see BluetoothAPIs.h
+        [in] BLUETOOTH_PAIRING_OOB_DATA* pOobData);         // Out-of-band authentication data, or NULL if none
+
+    // Supply a PIN for authentication. Client should call this only if BTCM has
+    // called the GetPin callback.
+    // Results:
+    //  S_OK: PIN has been accepted, and authentication is proceeding. This does NOT mean
+    //        that the PIN contains the correct value.
+    //  E_NOT_VALID_STATE: This request is not expecting a PIN.
+    HRESULT SetPin(
+        [in] int cbPin,                         // number of bytes in the PIN
+        [in] BYTE* pbPin );                     // contents of the PIN
+
+    // Affirm the the pairing is acceptable. The client should call this method exactly once
+    // for each call it receives to CompareNumber or IncomingJusWorks.
+    // Results:
+    //  S_OK: Comparison accepted
+    //  E_NOT_VALID_STATE: The request was not in a numeric comparison or just works mode.
+    HRESULT AcceptPairing();
+
+    // Fail the authentication. Instead of calling SetPin or AcceptPairing,
+    // a client may call this routine to cause the authentication to fail.
+    // S_OK: The authentication will fail.
+    //  E_NOT_VALID_STATE: The request was not expecting an authentication callback.
+    HRESULT FailAuthentication();
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+[object, uuid("263d4058-d9aa-42d6-8efe-da3ab89ec514"), pointer_default(unique)]
+interface IBtPairingRequestCallback : IUnknown
+{
+    // BTCM calls this routine to inform the client that a PIN is needed for authentication.
+    // In response, the client should (eventually) call IBtPairingRequest::SetPin.
+    // Result:
+    //  S_OK: Client intends to call SetPin or FailAuthentication in the future.
+    //  other: Authentication will fail immediately.
+    HRESULT GetPin(
+        [in] BTH_ADDR btAddr );         // Address of the device being authenticated
+
+    // BTCM calls this routine to inform the client that it must display a passkey for
+    // the user to type into a remote device. The client need not generate any response
+    // to this request.
+    //  S_OK: Client intends to display the passkey.
+    //  other: Authentication will fail immediately.
+    HRESULT ShowPasskey(
+        [in] BTH_ADDR btAddr,           // Address of the device being authenticated
+        [in] int cbPasskey,             // number of bytes in the passkey
+        [in] BYTE* pbPasskey );         // contents of the passkey, in ASCII.
+
+    // BTCM calls this routine to inform the client that a visual numeric comparison is
+    // needed to complete authentication. In response, the client should (eventually) call
+    // IBtPairingRequest::CompareSuccess.
+    HRESULT CompareNumber(
+        [in] BTH_ADDR btAddr,           // Address of the device being authenticated
+        [in] int iNumber );             // Cryptographically-derived number to compare
+
+    // BTCM calls this routine when outgoing pairing has completed or failed, to inform the client
+    // of the outcome. 'hrResult' contains the completion status, and is one of:
+    //  S_OK: Pairing has succeeded
+    //  E_NOT_AUTHENTICATED: Pairing has failed, authentication info was wrong.
+    //  E_ABORT: Pairing has failed for some other reason, usually device disconnection.
+    //  E_ACCESSDENIED: Caller does not hold the appropriate capability.
+    //  E_NOT_READY: BTCM service failed.
+    // BTCM will ignore the value returned from PairingCompleted.
+    HRESULT OutgoingPairingCompleted(
+        [in] BTH_ADDR btAddr,           // Address of the device being authenticated
+        [in] HRESULT hr );              // Completion status of the request
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Clients of IBRadioController::RegisterForIncomingPairing pass an instance of this interface
+//  to BTCM. BTCM will call IncomingPairing whenever a remote device initiates a pairing attempt.
+
+[object, uuid("22ed687a-b533-4479-9462-8a464ba11ebf"), pointer_default(unique)]
+interface IBtIncomingPairingCallback : IUnknown
+{
+    // BTCM calls this routine to inform the client that a remotely-initiated pairing
+    // attempt requires a PIN for authentication.  In response, the client should
+    // (eventually) call IBtPairingRequest::SetPin.
+    // Result:
+    //  S_OK: Client intends to call SetPin or FailAuthentication in the future.
+    //  other: Authentication will fail immediately.
+    HRESULT GetPin(
+        [in] IBtPairingRequest* pRequest,   // interface on which to send a response
+        [in] BTH_ADDR btAddr );             // Address of the device being authenticated
+
+    // BTCM calls this routine to inform the client that it must display a passkey for
+    // the user to type into a remote device. The client need not generate any response
+    // to this request.
+    //  S_OK: Client intends to display the passkey.
+    //  other: Authentication will fail immediately.
+    HRESULT ShowPasskey(
+        [in] IBtPairingRequest* pRequest,   // interface with which client may fail the request
+        [in] BTH_ADDR btAddr,               // Address of the device being authenticated
+        [in] int cbPasskey,                 // number of bytes in the passkey
+        [in] BYTE* pbPasskey );             // contents of the passkey, in ASCII.
+
+    // BTCM calls this routine to inform the client that a remotely-initiated pairing
+    // attempt requires a visual numeric comparison for authentication. In response,
+    // the client should (eventually) call IBtPairingRequest::AcceptPairing or
+    // IBtPairingRequest::FailAuthentication.
+    // Result:
+    //  S_OK: Client intends to display the number for comparison.
+    //  other: Authentication will fail immediately.
+    HRESULT CompareNumber(
+        [in] IBtPairingRequest* pRequest,   // interface on which to send a response
+        [in] BTH_ADDR btAddr,               // Address of the device being authenticated
+        [in] int iNumber );                 // Cryptographically-derived number to compare
+
+    // BTCM calls this routine to inform the client that an incoming just-works pairing
+    // attempt is in progress. In response, the client should (eventually) call
+    // IBtPairingRequest::AcceptPairing or IBtPairingRequest::FailAuthentication.
+    //  S_OK: Client intends determine whether to accept the pairing.
+    //  other: Authentication will fail immediately.
+    HRESULT IncomingJustWorks(
+        [in] IBtPairingRequest* pRequest,   // interface on which to send a response
+        [in] BTH_ADDR btAddr );             // Address of the remote device
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Clients of IBtRadioController::CreateScoAudioDevice receive an instance of this
+//  interface as an output. Clients use this to control (and eventually destroy) the
+//  connection.
+
+[object, uuid("d5d68018-3e53-4e0f-947d-4c8133b0e4f1"), pointer_default(unique)]
+interface IBtScoAudioDevice : IUnknown
+{
+    // You MUST call the following method exactly once after creating this interface.
+    // You are guaranteed NOT to receive any callbacks before calling this method.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_AUTHORIZED: You don't have ID_CAP_BLUETOOTH_ADMIN privilege
+    //  (other): Other problem opening driver
+    HRESULT Initialize(
+        [in] BOOLEAN fWidebandAudio );
+
+    // Get the codec IDs supported by the audio controller
+    // Result:
+    // S_OK: Success
+    // E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT GetControllerSupportedCodecId();
+
+    // Set the SCO codec ID. Retrieved by the audio driver before opening a SCO connection.
+    // The codec ID is in range [1 .. 255].
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT SetCodecId(
+        [in] int codecId );
+
+    // HF issued a command to disable any Echo Canceling and Noise Reduction functions embedded in the AG.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed or in state where this cannot be changed
+    HRESULT SetNRECDisable();
+
+    // The following four methods control the actual SCO channel to a device. They
+    // do absolutely nothing to the virtual audio device.
+
+    // Allow incoming SCO connections to succeed. This state will persist until either you call
+    // ForbidScoConnection, you call DestroyDevice, you release the IBtScoAudioDevice interface,
+    // or your process terminates. If AllowScoConnection has previously been called, this is a no-op.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT AllowScoConnection();
+
+    // Forbid incoming SCO connections. This call undoes the effect of AllowScoConnection.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT ForbidScoConnection();
+
+    // Attempt to establish an outgoing SCO connection for the audio device. This connection
+    // will last until you call DisconnectSco, or the remote device disconnects, or you
+    // call DestroyDevice, or you release the IBtScoAudioDevice object, or your process
+    // terminates.
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT ConnectSco();
+
+    // Disconnect an SCO connection. If SCO is not connected, this call does nothing.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT DisconnectSco();
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    // The following four methods affect only the virtual audio device. They do nothing
+    // to the actual SCO connection.
+
+    // Inform the audio stack that its logical channel is connected.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT SetAudioConnected();
+
+    // Inform the audio stack that its logical channel is disconnected.
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT SetAudioDisconnected();
+
+    // Inform the audio stack that someone has changed the speaker volume on the remote device.
+    // The volume is in the range [0 .. 15].
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT ChangeSpeakerVolume(
+        [in] int iNewVolume );              // new volume on the device, range [0 .. 15].
+
+    // Inform the audio stack that someone has changed the speaker volume on the remote device.
+    // The volume is in the range [0 .. 15].
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT ChangeMicrophoneVolume(
+        [in] int iNewVolume );              // new volume on the device, range [0 .. 15].
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    // Destroy the device. During or shortly after this call, BTCM will:
+    //  * Close the SCO connection if it is open
+    //  * Stop accepting incoming SCO connections
+    //  * Tell the audio device that it has been disconnected
+    //  * Destroy the actual device, and
+    //  * Release the reference to the caller's Callback interface.
+    // After calling this method, calls to any other method will return E_NOT_VALID_STATE.
+    // (You may call this method as many times as you like.(
+    // Result:
+    //  S_OK: Success
+    //  E_NOT_VALID_STATE: Device is already destroyed
+    HRESULT DestroyDevice();
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  BTCM calls methods of this interface to let the client know of changes in the condition
+//  of either the actual SCO channel, or the logical audio device.
+
+[object, uuid("d9291d8e-b135-4e9f-85cd-2356c3b878f5"), pointer_default(unique)]
+interface IBtScoAudioDeviceCallback : IUnknown
+{
+    // The state of the SCO connection has changed. You make take whatever action you deem
+    // appropriate in response to this message, including ignoring it completely.
+    HRESULT ScoConnectionChanged(
+        [in] BLUETOOTH_CONNECTION_STATE eState,     // new state of the device
+        [in] BOOLEAN fIncoming );                   // if new state is CONNECTED, TRUE iff the connection was incoming
+
+    // The audio stack wants the audio device to be connected. In response to this message,
+    // the client should (eventually) call IBtScoAudioDevice::SetAudioConnected or
+    // IBtScoAudioDevice::SetAudioDisconnected. He should do this even if he has made a similar
+    // previous call; this allows to audio stack to know the outcome of its request.
+    // Result: ignored.
+    HRESULT RequestAudioConnect();
+
+    // The audio stack wants its audio device to be disconnected. The client may take any action
+    // he deems appropriate, including ignoring the event entirely. (Most of the time, however, the
+    // client will eventually call IBtScoAudioDevice::SetAudioDisconnected.)
+    // Result: ignored.
+    HRESULT RequestAudioDisconnect();
+
+    // The audio stack wants to change the volume on the virtual speaker device. You will receive one of
+    // these calls every time the audio stack attempts to change the volume. You will NOT receive
+    // a call in response to your calls to IBtScoAudioDevice::ChangeSpeakerVolume.
+    // Result: ignored.
+    HRESULT RequestChangeSpeakerVolume(
+        [in] int iNewVolume );              // new volume setting, in the range [0 .. 15]
+
+    // The audio stack wants to change the volume on the virtual microphone device. You will receive one of
+    // these calls every time the audio stack attempts to change the volume. You will NOT receive
+    // a call in response to your calls to IBtScoAudioDevice::ChangeMicrophoneVolume.
+    // Result: ignored.
+    HRESULT RequestChangeMicrophoneVolume(
+        [in] int iNewVolume );              // new volume setting, in the range [0 .. 15]
+
+    // The audio stack wants to know which voice codec to use for SCO. In response to this message,
+    // the client will eventually call IBtScoAudioDevice::SetCodecId with the selected codec ID.
+    // If the HF supports codec negotiation and the codec has not been negotiate before, the client
+    // will perform the codec negotiation procedure before calling IBtScoAudioDevice::SetCodecId.
+    // Result: ignored.
+    HRESULT RequestCodecId();
+
+    // A request to retrieve Codec IDs supported by the controller has been complete.  If the request
+    // succeeds, then ids shall contain the supported standard and vendor codecs.
+    // If the request fails (HCI_Read_Local_Supported_Codecs is not supported), then ids shall be NULL
+    HRESULT ReceiveControllerSupportedCodecId(
+        [in] MIDL_PVOID pvSupportedCodecId);
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Clients who wish to register background execution triggers use methods of this interface.
+//  If you use one of the asynchronous methods, you need to provide your own object that
+//  implements IBtRegisterTriggerCallback.
+
+[object,uuid("3799db18-fdfa-4010-8aca-1d643246db97"), pointer_default(unique)]
+interface IBtRegisterTrigger : IUnknown
+{
+    // Register a new RFCOMM connection trigger, asynchronously. Upon completion, BTCM will
+    // call IBtRegisterTriggerCallback::RequestCompleted exactly once.
+    HRESULT RegisterRfcommTriggerAsync(
+        [in] BTH_ADDR bthAddr,              // Address of sole relevant Bluetooth device, or 0 for any device.
+        [in] REFGUID guidRemoteService,     // Guid of remote service to connect to, or GUID_NULL if outgoing connections are not desired
+        [in] REFGUID guidLocalService,      // Guid of local service to listen on, or GUID_NULL if either incoming connections
+                                            // are not desired or the supplied SDP record already contains the GUID.
+        [in] unsigned int uiCodFlags,       // optional flags to OR into the local device's ClassOfDevice field.
+                                            // MUST be zero if incoming connections are not desired.
+        [in] BOOLEAN fSingleConnection,     // true iff the client desires no more than one connection at a time.
+        [in] BOOLEAN fEncrypt,              // true iff all connections require encryption
+        [in] BOOLEAN fAuthenticate,         // true iff all connections require authentication
+        [in] unsigned int cbSdpRecord,      // number of bytes in following SDP record. Zero if either the client does not
+                                            // want incoming connections or the client does not need anything custom in an SDP record.
+        [in] const BYTE* rgbSdpRecord,      // SDP record to publish, or NULL if the client either does not want incoming
+                                            // connections or does not need anything custom in its SDP record.
+        [in] IBtRegisterTriggerCallback* pCallback );   // interface pointer through which completion is reported
+
+    // Register a new RFCOMM connection trigger, synchronously.
+    HRESULT RegisterRfcommTriggerSync(
+        [in] BTH_ADDR bthAddr,              // Address of sole relevant Bluetooth device, or 0 for any device.
+        [in] REFGUID guidRemoteService,     // Guid of remote service to connect to, or GUID_NULL if outgoing connections are not desired
+        [in] REFGUID guidLocalService,      // Guid of local service to listen on, or GUID_NULL if either incoming connections
+                                            // are not desired or the supplied SDP record already contains the GUID.
+        [in] unsigned int uiCodFlags,       // optional flags to OR into the local device's ClassOfDevice field.
+                                            // MUST be zero if incoming connections are not desired.
+        [in] BOOLEAN fSingleConnection,     // true iff the client desires no more than one connection at a time.
+        [in] BOOLEAN fEncrypt,              // true iff all connections require encryption
+        [in] BOOLEAN fAuthenticate,         // true iff all connections require authentication
+        [in] unsigned int cbSdpRecord,      // number of bytes in following SDP record. Zero if either the client does not
+                                            // want incoming connections or the client does not need anything custom in an SDP record.
+        [in] const BYTE* rgbSdpRecord,      // SDP record to publish, or NULL if the client either does not want incoming
+                                            // connections or does not need anything custom in its SDP record.
+        [out] GUID* pguidTaskId );          // identifier assigned to the newly registered task.
+
+    // Register a new Device Change trigger, asynchronously. Upon completion, BTCM will
+    // call IBtRegisterTriggerCallback::RequestCompleted exactly once.
+    HRESULT RegisterDeviceConnectionChangeTriggerAsync(
+        [in] BTH_ADDR bthAddr,              // address of device to monitor
+        [in] BOOLEAN fIsLE,                 // true iff device is Bluetooth LE
+        [in] BOOLEAN fMaintainConnection,   // true iff BTCM should keep the device connected whenever possible
+        [in] IBtRegisterTriggerCallback* pCallback );   // interface pointer through which completion is reported
+
+    // Register a new Device Change trigger, synchronously.
+    HRESULT RegisterDeviceConnectionChangeTriggerSync(
+        [in] BTH_ADDR bthAddr,              // address of device to monitor
+        [in] BOOLEAN fIsLE,                 // true iff device is Bluetooth LE
+        [in] BOOLEAN fMaintainConnection,   // true iff BTCM should keep the device connected whenever possible
+        [out] GUID* pguidTaskId );          // identifier assigned to the newly registered task.
+
+    // Register a new RSSI Trigger, asynchronously. Upon completion, BTCM will
+    // call IBtRegisterTriggerCallback::RequestCompleted exactly once.
+    HRESULT RegisterRssiTriggerAsync(
+        [in] BTH_ADDR bthAddr,              // address of device to monitor
+        [in] int iMinimumRssi,              // trigger when RSSI goes below this value
+        [in] int iMaximumRssi,              // trigger when RSSI goes above this value
+        [in] unsigned int uiRecognitionTime,    // recognition time hint, in milliseconds
+        [in] IBtRegisterTriggerCallback* pCallback );   // interface pointer through which completion is reported
+
+    // Register a new RSSI Trigger, Ssynchronously.
+    HRESULT RegisterRssiTriggerSync(
+        [in] BTH_ADDR bthAddr,              // address of device to monitor
+        [in] int iMinimumRssi,              // trigger when RSSI goes below this value
+        [in] int iMaximumRssi,              // trigger when RSSI goes above this value
+        [in] unsigned int uiRecognitionTime,    // recognition time hint, in milliseconds
+        [out] GUID* pguidTaskId );          // identifier assigned to the newly registered task.
+
+    // Register a new GATT Characteristic Change Trigger, asynchronously. Upon completion, BTCM will
+    // call IBtRegisterTriggerCallback::RequestCompleted exactly once.
+    HRESULT RegisterCharacteristicTriggerAsync(
+        [in] BTH_ADDR bthAddr,                                // address of device to monitor
+        [in] unsigned short hService,                   // service attribute handle
+        [in] unsigned short hCharacteristic,            // characteristic attribute handle
+        [in] unsigned short hValue,                     // characteristic value attribute handle
+        [in] int cIncludedService,                      // depth of included service heirarchy
+        [in,size_is(cIncludedService)]
+            unsigned short* hIncludedService,           // included service attribute handles
+        [in] IBtRegisterTriggerCallback* pCallback );   // interface pointer through which completion is reported
+
+    // Register a new GATT Characteristic Change Trigger, synchronously.
+    HRESULT RegisterCharacteristicTriggerSync(
+        [in] BTH_ADDR bthAddr,                          // address of device to monitor
+        [in] unsigned short hService,                   // service attribute handle
+        [in] unsigned short hCharacteristic,            // characteristic attribute handle
+        [in] unsigned short hValue,                     // characteristic value attribute handle
+        [in] int cIncludedService,                      // depth of included service heirarchy
+        [in,size_is(cIncludedService)]
+            unsigned short* hIncludedService,           // included service attribute handles
+        [out] GUID* pguidTaskId );                      // identifier assigned to the newly registered task.
+
+    // Unregister a previously-registered trigger.
+    HRESULT UnregisterTrigger(
+        [in] GUID guidEventId);     // value returned by Register...
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  BTCM calls methods of this interface to let the client know of completions to
+//  registration attempts.
+
+[object,uuid("e21a1912-8e69-472b-aed6-95c0aeb4afcf"), pointer_default(unique)]
+interface IBtRegisterTriggerCallback : IUnknown
+{
+    // A previous registration request has completed.
+    HRESULT RegistrationCompleted(
+        [in] HRESULT hrRegister,        // completion status of the register request.
+        [in] REFGUID guidTaskId );      // identifier assigned to the newly registered task (or GUID_NULL if error).
+};
+
+// ----------------------------------------------------------------------------------------------------
+
+//  Clients of the Bluetooth Connection Manager will use CoCreateInstance to create an instance
+//  of this object. Internally, it will communicate with the Connection Manager service using
+//  some sort of private mechanism.
+
+//  Clients are responsible for calling Shutdown before the final release of this object.
+//  (Otherwise, they may leak memory in their own process, but they shouldn't adversely
+//  affect the rest of the system.)
+
+[uuid("54246f65-69fb-4d03-b6af-e87cd02512f1")]
+library BtConnectionManager
+{
+    [uuid("101c5b9f-c6f7-41c4-815b-69aac1eca0a9")]
+    coclass BtConnectionManager
+    {
+        interface IBtRadioController;
+        interface IBtRadioControllerV2;
+        [default] interface IBtConnectionObserver;
+        interface IBtConnectionResponder;
+    };
+
+    [uuid("5da1f24d-44b1-4b67-b1fa-605df25f0ad7")]
+    coclass BtConnectionManagerNoFail
+    {
+        interface IBtRadioController;
+        interface IBtRadioControllerV2;
+        [default] interface IBtConnectionObserver;
+        interface IBtConnectionResponder;
+    };
+};
+
+cpp_quote("#if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)")
+cpp_quote("#pragma deprecated(IBtRadioController) // Please use IBtRadioControllerV2 and the appropriate domain specific Apis for the remaining functionality.")
+cpp_quote("#pragma deprecated(IBtPairingRequest) // Please use Device Association Framework Apis.")
+cpp_quote("#pragma deprecated(IBtPairingRequestCallback) // Please use Device Association Framework Apis.")
+cpp_quote("#pragma deprecated(IBtIncomingPairingCallback) // Please use Device Association Framework Apis.")
+cpp_quote("#endif // (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)")
+

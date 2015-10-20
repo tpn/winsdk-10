@@ -1,0 +1,51 @@
+import "unknwn.idl";
+import "wtypes.idl";
+import "inspectable.idl";
+
+#pragma region Application Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)")
+
+[
+    uuid(c35036d2-b8e4-498e-a199-073075e2ea6f),
+    pointer_default(unique),
+    object
+]
+interface IAoWAppActivatedRuntime : IUnknown
+{
+    HRESULT OnActivated([in] IInspectable* launchActivatedEventArgs);
+}
+
+[
+    uuid(eacc1765-4c7f-449f-b9f9-7d13135ea10b),
+    pointer_default(unique),
+    object
+]
+interface IAoWBackgroundTaskRuntime : IUnknown
+{
+    HRESULT RunTask([in] IInspectable* backgroundTaskInstance);
+}
+
+[
+    uuid(09e24794-730b-43ad-9811-b0b55e2a07e9)
+]
+library AoWAppRuntime
+{
+    [
+        uuid(da3739a3-46a5-4e9b-b2b5-9545eeea93e6)
+    ]
+    coclass AoWAppActivatedRuntime
+    {
+        [default] interface IAoWAppActivatedRuntime;
+    }
+
+    [
+        uuid(e213b5d9-4ee5-4e2d-945e-6508c1d050fb)
+    ]
+    coclass AoWBackgroundTaskRuntime
+    {
+        [default] interface IAoWBackgroundTaskRuntime;
+    }
+}
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) */")
+#pragma endregion

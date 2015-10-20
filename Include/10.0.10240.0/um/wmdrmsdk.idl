@@ -1,0 +1,1207 @@
+//*@@@+++@@@@******************************************************************
+//
+// Microsoft Windows Media Digital Rights Management
+// Copyright (C) Microsoft Corporation. All rights reserved.
+//
+//*@@@---@@@@******************************************************************
+
+cpp_quote("#include <winapifamily.h>")
+
+#pragma region Desktop Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)")
+
+import "oaidl.idl";
+import "ocidl.idl";
+import "mfobjects.idl";
+import "mfidl.idl";
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// The following is the list of DRM actions available for applications
+// Used by IWMDRMLicenseManagement::AcquireLicense, MonitorLicenseAcquisition,
+//  and CreateLicenseEnumeration among other things
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ACTIONLIST_TAG                   = L\"ACTIONLIST\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ACTION_TAG                       = L\"ACTION\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_PLAYBACK                   = L\"Play\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_COPY                       = L\"Copy\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_PLAYLIST_BURN              = L\"PlaylistBurn\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_CREATE_THUMBNAIL_IMAGE     = L\"CreateThumbnailImage\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_COPY_TO_CD                 = L\"Print.redbook\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_COPY_TO_SDMI_DEVICE        = L\"Transfer.SDMI\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_COPY_TO_NON_SDMI_DEVICE    = L\"Transfer.NONSDMI\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_BACKUP                     = L\"Backup\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_RIGHT_COLLABORATIVE_PLAY         = L\"CollaborativePlay\";" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Actions for IWMDRMLicenseQuery::QueryActionAllowed
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// Prefix string
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed                        = L\"ActionAllowed.\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_Playback               = L\"ActionAllowed.Play\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_Copy                   = L\"ActionAllowed.Copy\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_PlaylistBurn           = L\"ActionAllowed.PlaylistBurn\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_CreateThumbnailImage   = L\"ActionAllowed.CreateThumbnailImage\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_CopyToCD               = L\"ActionAllowed.Print.redbook\";" )
+
+// Note: The following 4 constants are NOT supported by IWMDRMLicenseQuery::QueryActionAllowed
+//  They are defined in this file in order to maintain backward compatibility with the FSDK.
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_CopyToSDMIDevice       = L\"ActionAllowed.Transfer.SDMI\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_CopyToNonSDMIDevice    = L\"ActionAllowed.Transfer.NONSDMI\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_Backup                 = L\"ActionAllowed.Backup\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ActionAllowed_CollaborativePlay      = L\"ActionAllowed.CollaborativePlay\";" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Actions for IWMDRMLicenseQuery::QueryLicenseState
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// Prefix string
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState                      = L\"LicenseStateData.\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_Playback             = L\"LicenseStateData.Play\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_Copy                 = L\"LicenseStateData.Copy\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_PlaylistBurn         = L\"LicenseStateData.PlaylistBurn\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_CreateThumbnailImage = L\"LicenseStateData.CreateThumbnailImage\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_CopyToCD             = L\"LicenseStateData.Print.redbook\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_CopyToSDMIDevice     = L\"LicenseStateData.Transfer.SDMI\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_CopyToNonSDMIDevice  = L\"LicenseStateData.Transfer.NONSDMI\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_Backup               = L\"LicenseStateData.Backup\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_LicenseState_CollaborativePlay    = L\"LicenseStateData.CollaborativePlay\";" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// WMDRMNET strings for IWMDRMLicense::GetLicenseProperty
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRMNET_Revocation                     = L\"WMDRMNET_REVOCATION\";" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// SAP strings for IWMDRMLicense::GetLicenseProperty
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_SAPLEVEL                          = L\"SAPLEVEL\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_SAPRequired                       = L\"SAPRequired\";" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Misc strings for IWMDRMLicense::GetLicenseProperty
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_SOURCEID                          = L\"SOURCEID\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_PRIORITY                          = L\"PRIORITY\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_ISSUEDATE                         = L\"ISSUEDATE\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_UplinkID                          = L\"UplinkID\";" )
+cpp_quote( "EXTERN_C const DECLSPEC_SELECTANY WCHAR *g_wszWMDRM_REVINFOVERSION                    = L\"REVINFOVERSION\";" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// License state bit masks for DRM_LICENSE_STATE_DATA.dwVague
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define DRM_LICENSE_STATE_DATA_VAGUE       1" )
+cpp_quote( "#define DRM_LICENSE_STATE_DATA_OPL_PRESENT 2" )
+cpp_quote( "#define DRM_LICENSE_STATE_DATA_SAP_PRESENT 4" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Backup/restore flags for IWMDRMLicenseManagement::BackupLicenses and RestoreLicenses
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define WMDRM_BACKUP_OVERWRITE       ((DWORD) 0x00000001)" )
+cpp_quote( "#define WMDRM_RESTORE_INDIVIDUALIZE  ((DWORD) 0x00000002)" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// WMDRM Security Perform Flags for IWMDRMSecurity::PerformSecurityUpdate
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote("#define WMDRM_SECURITY_PERFORM_INDIV               0x00000001L")     // Indiv only if necessary
+cpp_quote("#define WMDRM_SECURITY_PERFORM_REVOCATION_REFRESH  0x00000002L")     // Refresh Revocation Data
+cpp_quote("#define WMDRM_SECURITY_PERFORM_FORCE_INDIV         0x00000004L")     // Force indiv
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// License type flags for IWMDRMLicense::GetLicense
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote("#define WMDRM_LICENSE_TYPE_XML       0x00000001L")
+cpp_quote("#define WMDRM_LICENSE_TYPE_XMR       0x00000002L")
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Certificate type flags for IWMDRMSecurity::GetMachineCertificate
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote("#define WMDRM_CERTIFICATE_TYPE_V1       0x00000001L")
+cpp_quote("#define WMDRM_CERTIFICATE_TYPE_V2       0x00000002L")
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// License request type flags for IWMDRMLicenseManagement::AcquireLicense
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote("#define WMDRM_ACQUIRE_LICENSE_SILENT              0x00000001L")
+cpp_quote("#define WMDRM_ACQUIRE_LICENSE_NONSILENT           0x00000002L") // Just generate a challenge
+cpp_quote("#define WMDRM_ACQUIRE_LICENSE_LEGACY_NONSILENT    0x00000004L") // Just generate a V1 challenge
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// DRM license deletion flags for IWMDRMLicenseManagement::DeleteLicense
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define WMDRM_DELETE_LICENSE_IMMEDIATELY    0x00000001L" )
+cpp_quote( "#define WMDRM_DELETE_LICENSE_MARK_FOR_PURGE 0x00000002L" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// DRM license store cleanup flags for IWMDRMLicenseManagement::CleanLicenseStore
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define WMDRM_CLEAN_LICENSE_STORE_SYNC  0x00000001L" )
+cpp_quote( "#define WMDRM_CLEAN_LICENSE_STORE_ASYNC 0x00000002L" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+//  Types of certificates for IWMDRMLicense::CreateSecureDecryptor (dwCertificateType)
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define WMDRM_CERTIFICATE_TYPE_XML 1" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+//  Types of protection for IWMDRMLicense::CreateSecureDecryptor (dwFlags)
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define WMDRM_PROTECTION_TYPE_RC4        1" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Revocation Type GUIDs for various methods in IWMDRMSecurity
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "EXTERN_GUID( WMDRM_REVOCATIONTYPE_APP,          0x90A37313, 0x0ECF, 0x4CAA, 0xA9, 0x06, 0xB1, 0x88, 0xF6, 0x12, 0x93, 0x00 );" )
+cpp_quote( "EXTERN_GUID( WMDRM_REVOCATIONTYPE_DEVICE,       0x3129E375, 0xCEB0, 0x47D5, 0x9C, 0xCA, 0x9D, 0xB7, 0x4C, 0xFD, 0x43, 0x32 );" )
+cpp_quote( "EXTERN_GUID( WMDRM_REVOCATIONTYPE_CARDEA,       0xCD75E604, 0x543D, 0x4A9C, 0x9F, 0x09, 0xFE, 0x6D, 0x24, 0xE8, 0xBF, 0x90 );" )
+cpp_quote( "EXTERN_GUID( WMDRM_REVOCATIONTYPE_REVINFO,      0xCCDE5A55, 0xA688, 0x4405, 0xA8, 0x8B, 0xD1, 0x3F, 0x90, 0xD5, 0xBA, 0x3E );" )
+cpp_quote( "EXTERN_GUID( WMDRM_REVOCATIONTYPE_GRL,          0xa2190240, 0xb2ca, 0x40b3, 0xb4, 0x8d, 0x9b, 0xc4, 0xc2, 0xdc, 0x42, 0x8d );" )
+cpp_quote( "EXTERN_GUID( WMDRM_REVOCATIONTYPE_HDCP,         0xe627553a, 0x820f, 0x40fd, 0xb4, 0x65, 0xa4, 0x28, 0x30, 0xa5, 0x74, 0xc9 );" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum indicates the type of crypto algorithm and paramters
+// that will be passed to the DRM encrypt and decrypt functions
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum DRM_CRYPTO_TYPE
+{
+    CRYPTO_TYPE_MCE = 0
+} DRM_CRYPTO_TYPE;
+
+cpp_quote( "#if !DRM_LICENSE_STATE_TYPES_DEFINED" )
+cpp_quote( "#define DRM_LICENSE_STATE_TYPES_DEFINED 1" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum indicates the category for each possible output string to be
+// displayed. These are:
+//
+// 0 -  Playback not permitted.
+// 1 -  Playback unlimited.
+// 2 -  Playback valid 5 times.
+// 3 -  Playback valid from 7/12/00.
+// 4 -  Playback valid until 7/12/00.
+// 5 -  Playback valid from 5/12 to 9/12.
+// 6 -  Playback valid 5 times from 7/12/00.
+// 7 -  Playback valid 5 times until 7/12/00.
+// 8 -  Playback valid 5 times from 5/12 to 9/12.
+// 9 -  Playback valid for 24 hours from first use.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum DRM_LICENSE_STATE_CATEGORY
+{
+    WM_DRM_LICENSE_STATE_NORIGHT = 0,
+    WM_DRM_LICENSE_STATE_UNLIM,
+    WM_DRM_LICENSE_STATE_COUNT,
+    WM_DRM_LICENSE_STATE_FROM,
+    WM_DRM_LICENSE_STATE_UNTIL,
+    WM_DRM_LICENSE_STATE_FROM_UNTIL,
+    WM_DRM_LICENSE_STATE_COUNT_FROM,
+    WM_DRM_LICENSE_STATE_COUNT_UNTIL,
+    WM_DRM_LICENSE_STATE_COUNT_FROM_UNTIL,
+    WM_DRM_LICENSE_STATE_EXPIRATION_AFTER_FIRSTUSE,
+} DRM_LICENSE_STATE_CATEGORY;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Structure to hold license state data
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _DRM_LICENSE_STATE_DATA
+{
+    DWORD dwStreamId;                           // 0 -> All streams, != 0 -> A particular stream.
+    DRM_LICENSE_STATE_CATEGORY dwCategory;      // Indicates the category of string to be displayed.
+    DWORD dwNumCounts;                          // Number of items supplied in dwCount.
+    DWORD dwCount[4];                           // Up to 4 counts.
+    DWORD dwNumDates;                           // Number of items supplied in dwDate.
+    FILETIME datetime[4];                       // Up to 4 dates.
+    DWORD dwVague;                              // Bit mask of DRM_LICENSE_STATE_DATA_VAGUE
+                                                //             DRM_LICENSE_STATE_DATA_OPL_PRESENT
+                                                //             DRM_LICENSE_STATE_DATA_SAP_PRESENT
+} DRM_LICENSE_STATE_DATA;
+
+cpp_quote( "#endif" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum indicates the status of the state DRM is in
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum MSDRM_STATUS
+{
+    DRM_ERROR                       = 0,
+    DRM_INFORMATION                 = 1,
+    DRM_BACKUPRESTORE_BEGIN         = 2,
+    DRM_BACKUPRESTORE_END           = 3,
+    DRM_BACKUPRESTORE_CONNECTING    = 4,
+    DRM_BACKUPRESTORE_DISCONNECTING = 5,
+    DRM_ERROR_WITHURL               = 6,
+    DRM_RESTRICTED_LICENSE          = 7,
+    DRM_NEEDS_INDIVIDUALIZATION     = 8,
+    DRM_PLAY_OPL_NOTIFICATION       = 9,
+    DRM_COPY_OPL_NOTIFICATION       = 10,
+    DRM_REFRESHCRL_COMPLETE         = 11,
+} MSDRM_STATUS;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum defines the different data types supported as attributes by DRM
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum DRM_ATTR_DATATYPE
+{
+    DRM_TYPE_DWORD              = 0,
+    DRM_TYPE_STRING             = 1,
+    DRM_TYPE_BINARY             = 2,
+    DRM_TYPE_BOOL               = 3,
+    DRM_TYPE_QWORD              = 4,
+    DRM_TYPE_WORD               = 5,
+    DRM_TYPE_GUID               = 6,
+} DRM_ATTR_DATATYPE;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum contains the DRM http status states
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum DRM_HTTP_STATUS
+{
+    HTTP_NOTINITIATED = 0,
+    HTTP_CONNECTING,
+    HTTP_REQUESTING,
+    HTTP_RECEIVING,
+    HTTP_COMPLETED,
+} DRM_HTTP_STATUS;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum contains the DRM individualization status states
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum DRM_INDIVIDUALIZATION_STATUS
+{
+    INDI_UNDEFINED   = 0x0000,
+    INDI_BEGIN       = 0x0001,
+    INDI_SUCCEED     = 0x0002,
+    INDI_FAIL        = 0x0004,
+    INDI_CANCEL      = 0x0008,
+    INDI_DOWNLOAD    = 0x0010,
+    INDI_INSTALL     = 0x0020,
+} DRM_INDIVIDUALIZATION_STATUS;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum contains the DRM IWMDRMLicenseQuery::QueryActionAllowed status states
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum _DRM_ACTION_ALLOWED_QUERY_RESULTS
+{
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED                      = 0x00000001,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_NO_LICENSE           = 0x00000002,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_NO_RIGHT             = 0x00000004,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_EXHAUSTED            = 0x00000008,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_EXPIRED              = 0x00000010,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_NOT_STARTED          = 0x00000020,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_APPSEC_TOO_LOW       = 0x00000040,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_REQ_INDIV            = 0x00000080,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_COPY_OPL_TOO_LOW     = 0x00000100,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_COPY_OPL_EXCLUDED    = 0x00000200,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_NO_CLOCK_SUPPORT     = 0x00000400,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_NO_METERING_SUPPORT  = 0x00000800,
+    DRM_ACTION_ALLOWED_QUERY_NOT_ENABLED_CHAIN_DEPTH_TOO_HIGH = 0x00001000,
+} DRM_ACTION_ALLOWED_QUERY_RESULTS;
+
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold crypto algorithm and associated data for DRM
+// encrypt/decrypt functions
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _WMDRMCryptoData
+{
+    DRM_CRYPTO_TYPE cryptoType;
+    unsigned __int64 qwCounterID;
+    unsigned __int64 qwOffset;
+} WMDRMCryptoData;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold DRM async individualization status information
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _WMIndividualizeStatus
+{
+    HRESULT                         hr;
+    DRM_INDIVIDUALIZATION_STATUS    enIndiStatus;
+    LPSTR                           pszIndiRespUrl;
+    DWORD                           dwHTTPRequest;
+    DRM_HTTP_STATUS                 enHTTPStatus;
+    DWORD                           dwHTTPReadProgress;
+    DWORD                           dwHTTPReadTotal;
+} WM_INDIVIDUALIZE_STATUS;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold Backup/Restore data
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _WMBackupRestoreData
+{
+    MSDRM_STATUS eStatus;
+    BSTR         bstrError;
+} WM_BACKUP_RESTORE_STATUS;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Conditionaly compiled Structures and definitions for
+// DRM internal/legacy Output Protection Levels (OPL)
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#ifndef DRM_OPL_TYPES" )
+cpp_quote( "#define DRM_OPL_TYPES 1")
+
+cpp_quote( "#define WMDRM_OPL_PLAY              ((DWORD) 0x00000001)" )
+cpp_quote( "#define WMDRM_OPL_COPY              ((DWORD) 0x00000002)" )
+
+typedef struct __tagDRM_MINIMUM_OUTPUT_PROTECTION_LEVELS
+{
+    WORD wCompressedDigitalVideo;
+    WORD wUncompressedDigitalVideo;
+    WORD wAnalogVideo;
+    WORD wCompressedDigitalAudio;
+    WORD wUncompressedDigitalAudio;
+} DRM_MINIMUM_OUTPUT_PROTECTION_LEVELS;
+
+typedef struct __tagDRM_OPL_OUTPUT_IDS
+{
+    WORD  cIds;
+    GUID  *rgIds;
+
+} DRM_OPL_OUTPUT_IDS;
+
+cpp_quote( "#define VER_DRM_PLAY_OPL_V1                 1" )
+cpp_quote( "#define VER_DRM_PLAY_OPL                    2" )
+cpp_quote( "#define VER_DRM_VIDEO_OUTPUT_PROTECTION     2" )
+
+typedef struct __tagDRM_OUTPUT_PROTECTION
+{
+    GUID guidId;
+    BYTE bConfigData;
+} DRM_OUTPUT_PROTECTION;
+
+typedef struct __tagDRM_OUTPUT_PROTECTION_EX
+{
+    DWORD   dwVersion;
+    GUID    guidId;
+    DWORD   dwConfigData;
+} DRM_OUTPUT_PROTECTION_EX;
+
+typedef DRM_OUTPUT_PROTECTION DRM_AUDIO_OUTPUT_PROTECTION;
+typedef DRM_OUTPUT_PROTECTION DRM_VIDEO_OUTPUT_PROTECTION;
+
+typedef DRM_OUTPUT_PROTECTION_EX DRM_AUDIO_OUTPUT_PROTECTION_EX;
+typedef DRM_OUTPUT_PROTECTION_EX DRM_VIDEO_OUTPUT_PROTECTION_EX;
+
+typedef struct __tagDRM_VIDEO_OUTPUT_PROTECTION_IDS
+{
+    WORD cEntries;
+    DRM_VIDEO_OUTPUT_PROTECTION *rgVop;
+} DRM_VIDEO_OUTPUT_PROTECTION_IDS;
+
+typedef struct __tagDRM_VIDEO_OUTPUT_PROTECTION_IDS_EX
+{
+    DWORD   dwVersion;
+    WORD    cEntries;
+    DRM_VIDEO_OUTPUT_PROTECTION_EX *rgVop;
+} DRM_VIDEO_OUTPUT_PROTECTION_IDS_EX;
+
+typedef struct __tagDRM_AUDIO_OUTPUT_PROTECTION_IDS
+{
+    WORD cEntries;
+    DRM_AUDIO_OUTPUT_PROTECTION *rgAop;
+} DRM_AUDIO_OUTPUT_PROTECTION_IDS;
+
+typedef struct __tagDRM_AUDIO_OUTPUT_PROTECTION_IDS_EX
+{
+    DWORD   dwVersion;
+    WORD    cEntries;
+    DRM_AUDIO_OUTPUT_PROTECTION_EX *rgAop;
+} DRM_AUDIO_OUTPUT_PROTECTION_IDS_EX;
+
+typedef struct __tagDRM_PLAY_OPL
+{
+    DRM_MINIMUM_OUTPUT_PROTECTION_LEVELS minOPL;
+    DRM_OPL_OUTPUT_IDS                   oplIdReserved;
+    DRM_VIDEO_OUTPUT_PROTECTION_IDS      vopi;
+} DRM_PLAY_OPL;
+
+typedef struct __tagDRM_PLAY_OPL_EX
+{
+    DWORD                            dwVersion;
+    DRM_MINIMUM_OUTPUT_PROTECTION_LEVELS minOPL;
+    DRM_OPL_OUTPUT_IDS                   oplIdReserved;
+    DRM_VIDEO_OUTPUT_PROTECTION_IDS_EX   vopi;
+} DRM_PLAY_OPL_EX;
+
+typedef struct __tagDRM_COPY_OPL
+{
+    WORD           wMinimumCopyLevel;
+    DRM_OPL_OUTPUT_IDS oplIdIncludes;
+    DRM_OPL_OUTPUT_IDS oplIdExcludes;
+} DRM_COPY_OPL;
+
+cpp_quote( "#endif // DRM_OPL_TYPES" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold consolidated DRM OPL values
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _WMDRMOutputProtectionLevels
+{
+    WORD wCompressedDigitalVideo;
+    WORD wUncompressedDigitalVideo;
+    WORD wAnalogVideo;
+    WORD wCompressedDigitalAudio;
+    WORD wUncompressedDigitalAudio;
+    WORD wMinimumCopyProtectionLevel;
+} WMDRM_OUTPUT_PROTECTION_LEVELS;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold DRM Analog video Restrictions
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _WMDRMAnalogVideoRestrictions
+{
+    GUID guidRestrictionID;
+    DWORD dwRestrictionData;
+} WMDRM_ANALOG_VIDEO_RESTRICTIONS;
+
+typedef struct _WMDRMAnalogVideoRestrictionsEx
+{
+    DWORD   dwVersion;
+    GUID    guidRestrictionID;
+    DWORD   cbRestrictionData;
+    BYTE   *pbRestrictionData;
+} WMDRM_ANALOG_VIDEO_RESTRICTIONS_EX;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Structures for specifying policy for WMDRM-ND
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum _WMDRMNET_POLICY_TYPE
+{
+    WMDRMNET_POLICY_TYPE_UNDEFINED      = 0x0000,
+    WMDRMNET_POLICY_TYPE_TRANSCRYPTPLAY = 0x0001
+} WMDRMNET_POLICY_TYPE;
+
+typedef struct _tagWMDRMNET_POLICY
+{
+    WMDRMNET_POLICY_TYPE ePolicyType;
+    BYTE                *pbPolicy;
+} WMDRMNET_POLICY;
+
+typedef struct _WMDRMNET_POLICY_TRANSCRYPTPLAY
+{
+    DWORD    cbData;
+    BYTE    *pbData;    //  This blob is opaque and should only be interpreted by the platform
+} WMDRMNET_POLICY_TRANSCRYPTPLAY;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Structures for descrambling and encrypting DRM data
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _WMDRM_ENCRYPT_SCATTER_INFO
+{
+    DWORD dwStreamID;
+    DWORD dwSampleProtectionVersion;
+    DWORD cbProtectionInfo;
+    BYTE *pbProtectionInfo;
+} WMDRM_ENCRYPT_SCATTER_INFO;
+
+typedef struct WMDRM_ENCRYPT_SCATTER_BLOCK
+{
+    DWORD dwStreamID;
+    DWORD cbBlock;
+    BYTE *pbBlock;
+} WMDRM_ENCRYPT_SCATTER_BLOCK;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// functions to init/shutdown WMDRMSDK.DLL
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote ( "EXTERN_C HRESULT STDMETHODCALLTYPE WMDRMStartup( );" )
+cpp_quote ( "EXTERN_C HRESULT STDMETHODCALLTYPE WMDRMShutdown( );" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// function to create a DRM Provider
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote ( "EXTERN_C HRESULT STDMETHODCALLTYPE WMDRMCreateProvider( OUT IWMDRMProvider **ppDRMProvider );" )
+
+cpp_quote ( "//" )
+cpp_quote ( "// WMDRMCreateProtectedProvider is only available via a Microsoft issued WMDRMSDK stub library" )
+cpp_quote ( "//" )
+
+cpp_quote ( "EXTERN_C HRESULT STDMETHODCALLTYPE WMDRMCreateProtectedProvider( OUT IWMDRMProvider **ppDRMProvider );" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for DRM asynchronous callback status
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( 08548704-75B1-4982-9B26-FB385DEE741D ),
+    helpstring("IDRMStatusCallback Interface"),
+    pointer_default(unique),
+    local
+]
+interface IDRMStatusCallback : IUnknown
+{
+    HRESULT OnStatus(
+        [in] MSDRM_STATUS Status,
+        [in] HRESULT hr,
+        [in] DRM_ATTR_DATATYPE dwType,
+        [in] BYTE *pValue,
+        [in] void *pvContext );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for DRM event Generation. This is an extension of
+// IMFMediaEventGenerator so that the operation can be canceled
+// Before a final release of any interface that derives from 
+// IWMDRMEventGenerator the caller should issue a call to Shutdown to ensure
+// any outstanding events or references are flushed and released.
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( CE11CC91-E615-4E0B-BE1F-09B5AEC033F2 ),
+    helpstring("IWMDRMEventGenerator Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMEventGenerator : IMFMediaEventGenerator
+{
+    HRESULT CancelAsyncOperation(
+        [in] IUnknown *punkCancelationCookie );
+
+    HRESULT Shutdown( );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface to provide WMDRMSDK objects based on Interface ID
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( 98DC8917-8640-4b1d-9F1E-A590D40357EE ),
+    helpstring("IWMDRMProvider Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMProvider : IUnknown
+{
+    HRESULT CreateObject(
+        [in]                REFIID   riid,
+        [out, iid_is(riid)] void   **ppvObject );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for performing, setting and extracting DRM Security Functionality
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( 70800F56-5239-4a0b-A8B8-D53C6BAE4171 ),
+    helpstring("IWMDRMSecurity Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMSecurity : IWMDRMEventGenerator
+{
+    HRESULT GetSecurityVersion(
+        [out] BSTR *pbstrVersion );
+
+    HRESULT GetMachineCertificate(
+        [in]                             DWORD   dwCertificateType,
+        [out]                            BYTE    rgbVersion[4],
+        [out,size_is( ,*pcbCertificate)] BYTE  **ppbCertificate,
+        [out]                            DWORD  *pcbCertificate );
+
+    HRESULT PerformSecurityUpdate(
+        [in]  DWORD      dwFlags,      // exactly one of WMDRM Security Perform Flags defined above
+        [out] IUnknown **ppunkCancelationCookie );
+
+    HRESULT SetRevocationData(
+        [in]                REFGUID  guidRevocationType,
+        [in,size_is(cbCRL)] BYTE    *pbCRL,
+        [in]                DWORD    cbCRL);
+
+    HRESULT GetRevocationData(
+        [in]                   REFGUID  guidRevocationType,
+        [out,size_is(*pcbCRL)] BYTE    *pbCRL,
+        [in, out]              DWORD   *pcbCRL);
+
+    HRESULT GetRevocationDataVersion(
+        [in]  REFGUID    guidRevocationType,
+        [out] ULONGLONG *pdwCRLVersion);
+
+    HRESULT CheckCertForRevocation(
+        [in]                 REFGUID  rguidRevocationList,
+        [in,size_is(cbCert)] BYTE    *pbCert,
+        [in]                 DWORD    cbCert,
+        [out]                BOOL    *pfRevoked );
+
+    HRESULT GetContentEnablersForRevocations(
+        [in, size_is(cCerts)]             BYTE              **rgpbCerts,
+        [in, size_is(cCerts)]             DWORD              *rgpdwCertSizes,
+        [in, size_is(cCerts)]             GUID              **rgpguidCerts,
+        [in]                              DWORD               cCerts,
+        [in]                              HRESULT             hResultHint,
+        [out,size_is(*pcContentEnablers)] IMFContentEnabler **prgContentEnablers,
+        [in,out]                          DWORD              *pcContentEnablers );
+
+    HRESULT GetContentEnablersFromHashes(
+        [in, size_is(cCerts)]             BSTR               *rgpbCertHashes,
+        [in]                              DWORD               cCerts,
+        [in]                              HRESULT             hResultHint,
+        [out,size_is(*pcContentEnablers)] IMFContentEnabler **prgContentEnablers,
+        [in,out]                          DWORD              *pcContentEnablers );
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for encrypting DRM data
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( C9E0A5F4-DD22-4dc4-B795-88FA91F0516B ),
+    helpstring("IWMDRMEncrypt Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMEncrypt : IUnknown
+{
+    HRESULT Encrypt(
+        [in,out, size_is( cbData )] BYTE            *pbData,
+        [in]                        DWORD            cbData,
+        [in]                        WMDRMCryptoData *pWMCryptoData);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for descrambling and encrypting DRM data
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( 2662fa39-4c62-481a-956c-7bfcb33c2888 ),
+    helpstring("IWMDRMEncryptScatter Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMEncryptScatter : IUnknown
+{
+    HRESULT InitEncryptScatter(
+        [in]                      DWORD                       cStreams,
+        [in, size_is( cStreams )] WMDRM_ENCRYPT_SCATTER_INFO *rgInfos );
+
+    HRESULT EncryptScatter(
+        [in]                       DWORD                        cBlocks,
+        [in, size_is( cBlocks )]   WMDRM_ENCRYPT_SCATTER_BLOCK *rgBlocks,
+        [in]                       WMDRMCryptoData             *pWMCryptoData,
+        [in]                       DWORD                        cbOutput,
+        [out, size_is( cbOutput )] BYTE                        *pbOutput );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for decrypting DRM data
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( C9E0A5F5-DD22-4dc4-B795-88FA91F0516B ),
+    helpstring("IWMDRMDecrypt Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMDecrypt : IUnknown
+{
+    HRESULT Decrypt(
+        [in,out, size_is( cbData )] BYTE            *pbData,
+        [in]                        DWORD            cbData,
+        [in]                        WMDRMCryptoData *pWMCryptoData);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for the WMDRM license
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( C9E0A5F3-DD22-4dc4-B795-88FA91F0516B ),
+    helpstring("IWMDRMLicense Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMLicense : IUnknown
+{
+    HRESULT ResetEnumeration( void );
+
+    HRESULT GetNext( void );
+
+    HRESULT GetLicense(
+        [out, size_is( ,*pcbLicense)] BYTE  **ppbLicense,
+        [out]                         DWORD  *pcbLicense,
+        [out]                         DWORD  *pdwLicenseType );
+
+    HRESULT GetLicenseProperty(
+        [in]  BSTR         bstrName,
+        [out] PROPVARIANT *ppropVariant );
+
+    HRESULT CreateDecryptor(
+        [out] IWMDRMDecrypt **ppDecryptor ); // Not available if bstrKID was NULL
+                                                                  // requires stublib
+
+    HRESULT CreateSecureDecryptor(
+        [in,size_is(cbCertificate)] BYTE           *pbCertificate,
+        [in]                        DWORD           cbCertificate,
+        [in]                        DWORD           dwCertificateType,
+        [in]                        DWORD           dwFlags,
+        [out]                       BYTE           *pbInitializationVector,
+        [out]                       DWORD          *pcbInitializationVector,
+        [out]                       IWMDRMDecrypt **ppDecryptor ); // Not available if bstrKID was NULL
+                                                                                // requires stublib
+
+    HRESULT CreateEncryptor(
+        [out] IWMDRMEncrypt **ppEncryptor ); // Not available if bstrKID was NULL
+                                                                  // requires stublib
+
+    HRESULT PersistLicense( void );
+
+    //
+    // License OPL and Rights Extraction
+    //
+
+    HRESULT CanPersist(
+        [out] BOOL* pfCanPersist );
+
+    HRESULT GetAnalogVideoRestrictionLevels(
+        [out,size_is(*pcRestrictions)] WMDRM_ANALOG_VIDEO_RESTRICTIONS  rgAnalogVideoRestrictions[],
+        [in, out]                      DWORD                           *pcRestrictions );
+
+    HRESULT GetOutputProtectionLevels(
+        [out] WMDRM_OUTPUT_PROTECTION_LEVELS* pOPLs );
+
+    //
+    //  An array of GUIDs will be allocated an returned to the caller.  This should be freed with CoTaskMemFree.
+    //
+    HRESULT GetInclusionList(
+        [out,size_is( ,*pcGuids)] GUID  **ppGuids,
+        [out]                     DWORD  *pcGuids );
+
+    HRESULT GetPolicy(
+        [out, size_is( ,*pcbPolicy)] BYTE    **ppbPolicy,
+        [out]                        DWORD    *pcbPolicy );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for the WMDRM license querying
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid(20B970DF-0A58-4d3c-817C-4E3CCBB253AC),
+    helpstring("IWMDRMLicenseQuery Interface"),
+    pointer_default(unique)
+]
+interface IWMDRMLicenseQuery : IUnknown
+{
+    // all licenses with the given KID will be searched and evaluated. The result
+    // are aggregated into rgResultStateData[]
+    HRESULT QueryLicenseState(
+        [in]                            BSTR                   bstrKID,
+        [in]                            DWORD                  cActionsToQuery,
+        [in,  size_is(cActionsToQuery)] BSTR                   rgbstrActionsToQuery[],
+        [out, size_is(cActionsToQuery)] DRM_LICENSE_STATE_DATA rgResultStateData[]);
+
+    // this function is called prior to calling QueryActionAllowed, if necessary
+    HRESULT SetActionAllowedQueryParams(
+        [in]  BOOL  fIsMF,              // optional, default to TRUE for using MediaFoundation
+        [in]  DWORD dwAppSecLevel,      // optional, if fIsMF is FALSE, this is the security level of the app
+        [in]  BOOL  fHasSerialNumber,   // optional, TRUE if the device has serial number for CanCopy query
+        [in]  BSTR  bstrDeviceCert);    // optional, The Janus device cert for CanCopy queyr
+
+    // Licenses with the given KID are searched and evaluated until the
+    // requested actions can be determined satisfied or all licenses with
+    // the given KID are visited.
+    HRESULT QueryActionAllowed(
+        [in]                            BSTR  bstrKID,
+        [in]                            BSTR  bstrMinReqIndivVersion,
+        [in]                            DWORD cActionsToQuery,
+        [in,  size_is(cActionsToQuery)] BSTR  rgbstrActionsToQuery[],
+        [out, size_is(cActionsToQuery)] DWORD rgdwQueryResult[]);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for the WMDRM license management, enumeration and backup/restore
+//  
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct WMDRM_LICENSE_FILTER
+{
+    DWORD           dwVersion;              // Currently 0 is the only supported version
+    BSTR            bstrKID;                // Base64 encoded DRM Kid value
+    BSTR            bstrRights;             // List of rights to filter licenses on.  This should be in the form of <ACTIONLIST><ACTION>Play</ACTION></ACTIONLIST>
+    BSTR            bstrAllowedSourceIDs;   // List of source IDs the application has been granted access to
+} WMDRM_LICENSE_FILTER;
+
+[
+    object,
+    uuid(F4828DC7-8945-4D05-AB05-667AB99D29EE),
+    helpstring("IWMDRMLicenseManagement Interface"),
+    pointer_default(unique)
+]
+interface IWMDRMLicenseManagement : IWMDRMEventGenerator
+{
+    HRESULT CreateLicenseEnumeration(
+        [in]  WMDRM_LICENSE_FILTER   *pLicenseFilter,
+        [out] IWMDRMLicense         **pEnumerator );
+
+    HRESULT DeleteLicense(
+        [in] BSTR  bstrKID,
+        [in] DWORD dwFlags );
+
+    HRESULT CleanLicenseStore(
+        [in]  DWORD      dwFlags,
+        [out] IUnknown **ppunkCancelationCookie );
+
+    HRESULT StoreLicense(
+        [in] BSTR bstrLicenseResponse );
+
+    HRESULT AcquireLicense(
+        [in]  BSTR       bstrURL,
+        [in]  BSTR       bstrHeaderData,            // If WMDRM_ACQUIRE_LICENSE_LEGACY_NONSILENT, this is just the KID.  Otherwise, this is the entire header.
+        [in]  BSTR       bstrActions,               // From list of DRM actions as XML string, e.g. <ACTIONLIST><ACTION>Play</ACTION></ACTIONLIST>
+        [in]  DWORD      dwFlags,                   // Exactly one of the License request type flags indicating Silent vs Non-silent request.  If non-silent an event will be delivered with the LICACQ info.
+        [out] IUnknown **ppunkCancelationCookie);
+
+    HRESULT MonitorLicenseAcquisition(
+        [in]  BSTR       bstrKID,
+        [in]  BSTR       bstrHeader,
+        [in]  BSTR       bstrActions,               // From list of DRM actions as XML string, e.g. <ACTIONLIST><ACTION>Play</ACTION></ACTIONLIST>
+        [out] IUnknown **ppunkCancelationCookie);
+
+    HRESULT BackupLicenses(
+        [in]  BSTR       bstrBackupDirectory,
+        [in]  DWORD      dwFlags,
+        [out] IUnknown **ppunkCancelationCookie);
+
+    HRESULT RestoreLicenses(
+        [in]  BSTR       bstrBackupDirectory,
+        [in]  DWORD      dwFlags,
+        [out] IUnknown **ppunkCancelationCookie);
+
+    HRESULT CreateLicenseRevocationChallenge(
+        [in, size_is( cbMachineID ) ]          BYTE   *pbMachineID,
+        [in]                                   DWORD   cbMachineID,
+        [in, size_is( cbChallenge )]           BYTE   *pbChallenge,
+        [in]                                   DWORD   cbChallenge,
+        [out, size_is( ,*pcbChallengeOutput )] BYTE  **ppbChallengeOutput,
+        [out]                                  DWORD  *pcbChallengeOutput );
+
+    HRESULT ProcessLicenseRevocationResponse(
+        [in, size_is( cbSignedLRB )]      BYTE   *pbSignedLRB,
+        [in]                              DWORD   cbSignedLRB,
+        [out, size_is( ,*pcbSignedACK  )] BYTE  **ppbSignedACK,
+        [out]                             DWORD  *pcbSignedACK );
+
+    HRESULT ProcessLicenseDeletionMessage(
+        [in]    BSTR    bstrDeletionMessage );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interfaces for the WMDRM Net Receiver
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( F9C074A4-15D6-44C0-8A6D-2446ACC109AE ),
+    helpstring("IWMDRMNetReceiver Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMNetReceiver : IWMDRMEventGenerator
+{
+    HRESULT GetRegistrationChallenge(
+        [out, size_is( ,*pcbRegistrationChallenge ) ] BYTE  **ppbRegistrationChallenge,
+        [out]                                         DWORD  *pcbRegistrationChallenge );
+
+    HRESULT ProcessRegistrationResponse(
+        [in, size_is( cbRegistrationResponse ) ] BYTE      *pbRegistrationResponse,
+        [in]                                     DWORD      cbRegistrationResponse,
+        [out]                                    IUnknown **ppunkCancellationCookie );
+
+    HRESULT GetLicenseChallenge(
+        [in]                                     BSTR    bstrAction,
+        [out, size_is( ,*pcbLicenseChallenge ) ] BYTE  **ppbLicenseChallenge,
+        [out]                                    DWORD  *pcbLicenseChallenge );
+
+    HRESULT ProcessLicenseResponse(
+        [in, size_is( cbLicenseResponse ) ]                  BYTE   *pbLicenseResponse,
+        [in]                                                 DWORD   cbLicenseResponse,
+        [out, size_is( ,*pcbWMDRMNetLicenseRepresentation )] BYTE  **ppbWMDRMNetLicenseRepresentation,
+        [out]                                                DWORD  *pcbWMDRMNetLicenseRepresentation );
+};
+
+[
+    object,
+    uuid( 7B97237F-4B5D-442d-86C7-4F88961AF76B ),
+    helpstring("IWMDRMNetReceiver2 Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMNetReceiver2 : IWMDRMNetReceiver
+{
+    HRESULT ProcessRegistrationResponseEx(
+        [in, size_is( cbRegistrationResponse ) ]    BYTE      *pbRegistrationResponse,
+        [in]                                        DWORD      cbRegistrationResponse,
+        [in]                                        DWORD      dwLocalIPv6ScopeID,
+        [out]                                       IUnknown **ppunkCancellationCookie );
+
+    HRESULT ProcessLicenseUpdate(  
+        [in, size_is( cbLicenseUpdate ) ]           BYTE *pbLicenseUpdate,
+        [in]                                        DWORD cbLicenseUpdate,
+        [out]                                       IWMDRMLicense **ppLicense );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interfaces for the WMDRM Net Transmitter
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( F040C12B-4415-4F20-93F0-453EB519A756 ),
+    helpstring("IWMDRMNetTransmitter Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMNetTransmitter : IUnknown
+{
+    HRESULT SetLicenseChallenge(
+        [in, size_is( cbLicenseChallenge )] BYTE  *pbLicenseChallenge,
+        [in]                                DWORD  cbLicenseChallenge );
+
+    HRESULT GetRootLicenseResponse(
+        [in]                                 BSTR    bstrKID,
+        [out, size_is(,*pcbLicenseResponse)] BYTE  **ppbLicenseResponse,
+        [out]                                DWORD  *pcbLicenseResponse );
+
+    HRESULT GetLeafLicenseResponse(
+        [in]                                 BSTR              bstrKID,
+        [in]                                 WMDRMNET_POLICY  *pPolicy,
+        [out]                                IWMDRMEncrypt   **ppIWMDRMEncrypt,
+        [out, size_is(,*pcbLicenseResponse)] BYTE            **ppbLicenseResponse,
+        [out]                                DWORD            *pcbLicenseResponse );
+};
+
+[
+    object,
+    uuid( 26BCB422-30C0-48b4-A641-D9FB1E656265 ),
+    helpstring("IWMDRMNetTransmitter2 Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMNetTransmitter2 : IWMDRMNetTransmitter
+{
+    HRESULT GetSimpleLicenseResponse(
+        [in]                                 BSTR              bstrKID,
+        [in]                                 WMDRMNET_POLICY  *pPolicy,
+        [out]                                IWMDRMEncrypt   **ppIWMDRMEncrypt,
+        [out, size_is(,*pcbLicenseResponse)] BYTE            **ppbLicenseResponse,
+        [out]                                DWORD            *pcbLicenseResponse );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for the status on WMDRM Inidividualization
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( 7DB091BD-DB6A-4FA4-BCBF-0783E256C78C ),
+    helpstring("IWMDRMIndividualizationStatus Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMIndividualizationStatus : IUnknown
+{
+    HRESULT GetStatus(
+        [out] WM_INDIVIDUALIZE_STATUS *pStatus );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for the status on WMDRM Backup/Restore
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( F653C5A2-0EB3-4503-9D88-C200552D0D55 ),
+    helpstring("IWMDRMLicenseBackupRestoreStatus Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMLicenseBackupRestoreStatus : IUnknown
+{
+    HRESULT GetStatus(
+        [out] WM_BACKUP_RESTORE_STATUS *pStatus );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Interface for getting information on WMDRM non silent license aquisition
+//
+///////////////////////////////////////////////////////////////////////////////
+
+[
+    object,
+    uuid( 8AE059DD-BE6B-481A-863A-59056B50B748 ),
+    helpstring("IWMDRMNonSilentLicenseAquisition Interface"),
+    pointer_default(unique),
+    local
+]
+interface IWMDRMNonSilentLicenseAquisition : IUnknown
+{
+    HRESULT GetURL(
+        [out] BSTR *pbstrURL );
+
+    HRESULT GetChallenge(
+        [out] BSTR *pbstrChallenge );
+};
+
+
+//
+// CoClasses
+//
+[
+    uuid(82435be0-f7c1-4df9-8103-eeabebf3d6e1),
+    version(1.0)
+]
+library WMDRMContentEnablerLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    [
+        uuid( 82435bdf-f7c1-4df9-8103-eeabebf3d6e1 )
+    ]
+    coclass WMDRMContentEnablerActivate
+    {
+        [default] interface IPersistStream;
+    };
+};
+
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */")
+#pragma endregion
+

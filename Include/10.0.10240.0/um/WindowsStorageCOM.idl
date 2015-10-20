@@ -1,0 +1,46 @@
+//+-------------------------------------------------------------------------
+//
+//  Microsoft Windows
+//  Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------------------
+cpp_quote("#include <winapifamily.h>")
+
+#pragma region Desktop Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)")
+
+import "oaidl.idl";
+
+[
+    object,
+    uuid(332E5848-2E15-458E-85C4-C911C0C3D6F4),
+]
+interface IRandomAccessStreamFileAccessMode : IUnknown
+{
+    HRESULT GetMode([out] DWORD* fileAccessMode); // Windows::Storage::FileAccessMode
+}
+
+[
+    uuid(D1019A0E-6243-4329-8497-2E75894D7710),
+    object,
+    local,
+]
+interface IUnbufferedFileHandleOplockCallback : IUnknown
+{
+    HRESULT OnBrokenCallback();
+}
+
+[
+    object,
+    uuid(A65C9109-42AB-4B94-A7B1-DD2E4E68515E),
+]
+interface IUnbufferedFileHandleProvider : IUnknown
+{
+    // Return S_OK and a valid file handle. Caller must call CloseUnbufferedFileHandle when it's not needed anymore.
+    // The handle will be also closed on an oplock break so "invalid handle" exceptions have to be handled.
+    HRESULT OpenUnbufferedFileHandle([in] IUnbufferedFileHandleOplockCallback* oplockBreakCallback, [out] [retval] DWORD_PTR* fileHandle);
+    HRESULT CloseUnbufferedFileHandle();
+}
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */")
+#pragma endregion

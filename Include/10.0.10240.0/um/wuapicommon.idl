@@ -1,0 +1,58 @@
+//==============================================================================
+//
+//  (C) Copyright 2003-2011 Microsoft Corporation.  All Rights Reserved.
+//
+//  File: wuapicommon.idl
+//
+//  Contents:   Common structures for Windows Update Services Client Interfaces.
+//
+//==============================================================================
+
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// wuapicommon.h")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// (C) Copyright 2003-2011 Microsoft Corporation.  All Rights Reserved.")
+cpp_quote("//")
+cpp_quote("// THIS CODE AND INFORMATION IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF")
+cpp_quote("// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO")
+cpp_quote("// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A")
+cpp_quote("// PARTICULAR PURPOSE.")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("")
+cpp_quote("#include <winapifamily.h>")
+
+#pragma region Desktop Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)")
+
+cpp_quote("#pragma comment(lib, \"wuguid.lib\")")
+cpp_quote("")
+cpp_quote("//--------------------------------------------------------------------------")
+cpp_quote("// Windows Update Services Client Structures.")
+cpp_quote("")
+
+
+
+
+
+#ifndef DO_NO_IMPORTS
+import "oaidl.idl";
+#endif
+
+
+[
+    helpstring(
+        "Defines possible server selections the Searcher can search against."),
+    v1_enum
+]
+typedef [public] enum tagServerSelection
+{
+    [helpstring("Default")]         ssDefault       = 0,
+    [helpstring("Managed server")]  ssManagedServer = 1,
+    [helpstring("Windows Update")]  ssWindowsUpdate = 2,
+    [helpstring("Others")]          ssOthers        = 3,
+} ServerSelection;
+
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */")
+#pragma endregion
+

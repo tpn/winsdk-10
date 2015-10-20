@@ -1,0 +1,235 @@
+//*@@@+++@@@@******************************************************************
+//
+// Microsoft Windows Media Digital Rights Management
+// Copyright (C) Microsoft Corporation. All rights reserved.
+//
+//*@@@---@@@@******************************************************************
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Note: A number of definitions that were previously defined here
+// are now located in wmdrmsdk.idl instead.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote("#include <winapifamily.h>")
+
+#pragma region Desktop Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)")
+
+import "wmdrmsdk.idl";
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// DRM properties
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// List of DRM Simple Query actions
+cpp_quote( "static const WCHAR *g_wszWMDRM_IsDRM                             = L\"IsDRM\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_IsDRMCached                       = L\"IsDRMCached\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_BaseLicenseAcqURL                 = L\"BaseLAURL\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_Rights                            = L\"Rights\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_LicenseID                         = L\"LID\";" )
+
+cpp_quote( "static const WCHAR *g_wszWMDRM_DRMHeader                         = L\"DRMHeader.\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_DRMHeader_KeyID                   = L\"DRMHeader.KID\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_DRMHeader_LicenseAcqURL           = L\"DRMHeader.LAINFO\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_DRMHeader_ContentID               = L\"DRMHeader.CID\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_DRMHeader_IndividualizedVersion   = L\"DRMHeader.SECURITYVERSION\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_DRMHeader_ContentDistributor      = L\"DRMHeader.ContentDistributor\";" )
+cpp_quote( "static const WCHAR *g_wszWMDRM_DRMHeader_SubscriptionContentID   = L\"DRMHeader.SubscriptionContentID\";" )
+
+cpp_quote( "#ifndef DRM_PLAYLIST_TYPES_DEFINED" )
+cpp_quote( "#define DRM_PLAYLIST_TYPES_DEFINED 1")
+///////////////////////////////////////////////////////////////////////////////
+//
+// Playlist data flags for DRM_PLAYLIST_CONTENT_ID.dwValidFields
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define DRM_PLAYLIST_DATA_V2_VALID         ((DWORD) 0x00000001)" )
+cpp_quote( "#define DRM_PLAYLIST_DATA_V1_VALID         ((DWORD) 0x00000002)" )
+cpp_quote( "#define DRM_PLAYLIST_DATA_OTHER_VALID      ((DWORD) 0x00000004)" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Playlist burn flags
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define DRM_CANCEL_PLAYLIST_BURN          ((DWORD) 0x00000001)" )
+cpp_quote( "#define DRM_COMMIT_PLAYLIST_BURN          ((DWORD) 0x00000002)" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold DRM Playlist content Identification data
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct __tagDRM_PLAYLIST_CONTENT_ID
+{
+    LPCWSTR lpcwszV2Header;
+    LPCSTR  lpcszV1KID;
+    BYTE   *pbOtherData;
+    DWORD   cbOtherData;
+    DWORD   dwUniqueIDForSession;
+    DWORD   dwValidFields;
+}DRM_PLAYLIST_CONTENT_ID;
+
+cpp_quote( "#endif // DRM_PLAYLIST_TYPES_DEFINED" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This enum specifies the different DRM rights available
+//
+///////////////////////////////////////////////////////////////////////////////
+
+typedef enum WMT_RIGHTS
+{
+    WMT_RIGHT_PLAYBACK                  = 0x00000001,
+    WMT_RIGHT_COPY_TO_NON_SDMI_DEVICE   = 0x00000002,
+    WMT_RIGHT_COPY_TO_CD                = 0x00000008,
+    WMT_RIGHT_COPY_TO_SDMI_DEVICE       = 0x00000010,
+    WMT_RIGHT_ONE_TIME                  = 0x00000020,
+    WMT_RIGHT_SAVE_STREAM_PROTECTED     = 0x00000040,
+    WMT_RIGHT_COPY                      = 0x00000080,
+    WMT_RIGHT_COLLABORATIVE_PLAY        = 0x00000100,
+    WMT_RIGHT_SDMI_TRIGGER              = 0x00010000,
+    WMT_RIGHT_SDMI_NOMORECOPIES         = 0x00020000,
+} WMT_RIGHTS;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// DRM device registration type flags
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define DRM_DEVICE_REGISTER_TYPE_STREAMING      ((DWORD) 0x00000001)" )
+cpp_quote( "#define DRM_DEVICE_REGISTER_TYPE_STORAGE        ((DWORD) 0x00000002)" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Protection schemes guids
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#ifndef DRM_PROTECTION_SCHEMES_DEFINED" )
+cpp_quote( "#define DRM_PROTECTION_SCHEMES_DEFINED 1")
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_ACP,                      0xc3fd11c6, 0xf8b7, 0x4d20, 0xB0, 0x08, 0x1d, 0xb1, 0x7d, 0x61, 0xf2, 0xda );" )
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_VGA_RESOLUTION,       0xd783a191, 0xe083, 0x4baf, 0xb2, 0xda, 0xe6, 0x9f, 0x91, 0x0b, 0x37, 0x72 );" )
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_COMPONENT_RESOLUTION, 0x811c5110, 0x46c8, 0x4c6e, 0x81, 0x63, 0xc0, 0x48, 0x2a, 0x15, 0xd4, 0x7e );" )
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_DOWNSAMPLE_REQUIRED,      0x8f81a453, 0x998c, 0x4596, 0xb1, 0x50, 0xf8, 0x48, 0x6d, 0xf6, 0xf2, 0xe6 );" )
+
+//
+//  The following GUIDS are defined to support different resolution values in future for analog video
+//  FSDK only understands a BYTE value for config data for the output protection type and so any 
+//  value more than 255 cannot be handled
+//  By defining multiple GUIDS for resolution values > 255, we work around this problem
+//  APP will be required to understand these GUIDS and apply output protection as defined by these GUIDS
+//  
+
+/* d9619433-ec9f-489e-9e07-770dedd8bd04 */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_VGA_RESOLUTION_1,         0xd9619433, 0xec9f, 0x489e, 0x9e, 0x07, 0x77, 0x0d, 0xed, 0xd8, 0xbd, 0x04 );" )
+/* a24f0a24-5c92-4737-9b21-a23e4fed322e */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_VGA_RESOLUTION_2,         0xa24f0a24, 0x5c92, 0x4737, 0x9b, 0x21, 0xa2, 0x3e, 0x4f, 0xed, 0x32, 0x2e );" )
+/* c4db4310-a1ae-422e-b7a7-21bc3473da77 */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_VGA_RESOLUTION_3,         0xc4db4310, 0xa1ae, 0x422e, 0xb7, 0xa7, 0x21, 0xbc, 0x34, 0x73, 0xda, 0x77 );" )
+/* e84e4d21-3b1c-44bc-a2ec-c48108587cad */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_VGA_RESOLUTION_4,         0xe84e4d21, 0x3b1c, 0x44bc, 0xa2, 0xec, 0xc4, 0x81, 0x08, 0x58, 0x7c, 0xad );" )
+
+/* ec3a1c03-dd4e-47f7-bfe5-aee753486671 */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_COMPONENT_RESOLUTION_1,         0xec3a1c03, 0xdd4e, 0x47f7, 0xbf, 0xe5, 0xae, 0xe7, 0x53, 0x48, 0x66, 0x71 );" )
+/* 327803ca-d914-4da3-9728-e19e82be8c25 */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_COMPONENT_RESOLUTION_2,         0x327803ca, 0xd914, 0x4da3, 0x97, 0x28, 0xe1, 0x9e, 0x82, 0xbe, 0x8c, 0x25 );" )
+/* 36d9c83f-af07-4727-ab74-ca6931ba69f3 */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_COMPONENT_RESOLUTION_3,         0x36d9c83f, 0xaf07, 0x4727, 0xab, 0x74, 0xca, 0x69, 0x31, 0xba, 0x69, 0xf3 );" )
+/* 9443d876-1d46-40cb-bde5-9cc1464c9baf */
+cpp_quote( "EXTERN_GUID( WMDRM_PROTECTION_SCHEME_MAX_COMPONENT_RESOLUTION_4,         0x9443d876, 0x1d46, 0x40cb, 0xbd, 0xe5, 0x9c, 0xc1, 0x46, 0x4c, 0x9b, 0xaf );" )
+
+cpp_quote( "#endif // DRM_PROTECTION_SCHEMES_DEFINED" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold Requested License Data information
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#ifndef DRM_WM_GET_LIC_DATA_DEFINED" )
+cpp_quote( "#define DRM_WM_GET_LIC_DATA_DEFINED 1")
+typedef struct _WMGetLicenseData
+{
+    DWORD dwSize;
+    HRESULT hr;
+    BSTR wszURL;
+    WCHAR *wszLocalFilename;
+    BYTE *pbPostData;
+    DWORD dwPostDataSize;
+} WM_GET_LICENSE_DATA;
+cpp_quote( "#endif // DRM_WM_GET_LIC_DATA_DEFINED" )
+
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Key types used in Secure Import
+//
+///////////////////////////////////////////////////////////////////////////////
+
+cpp_quote( "#define WMDRM_KEYTYPE_RC4       0" )
+cpp_quote( "#define WMDRM_KEYTYPE_COCKTAIL  1" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold the Session Key for Secure Import
+//
+///////////////////////////////////////////////////////////////////////////////
+cpp_quote( "#ifndef WMDRM_IMPORT_SESSION_KEY_DEFINED" )
+cpp_quote( "#define WMDRM_IMPORT_SESSION_KEY_DEFINED 1")
+typedef struct __tagWMDRM_IMPORT_SESSION_KEY
+{
+    DWORD dwKeyType;
+    DWORD cbKey;
+    BYTE rgbKey[1]; /* [cbKey] */
+} WMDRM_IMPORT_SESSION_KEY;
+cpp_quote( "#endif // WMDRM_IMPORT_SESSION_KEY_DEFINED" )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold the Content Key for Secure Import
+//
+///////////////////////////////////////////////////////////////////////////////
+cpp_quote( "#ifndef WMDRM_IMPORT_CONTENT_KEY_DEFINED" )
+cpp_quote( "#define WMDRM_IMPORT_CONTENT_KEY_DEFINED 1")
+typedef struct __tagWMDRM_IMPORT_CONTENT_KEY
+{
+    DWORD dwVersion;
+    DWORD cbStructSize;
+    DWORD dwIVKeyType;
+    DWORD cbIVKey;
+    DWORD dwContentKeyType;
+    DWORD cbContentKey;
+    BYTE rgbKeyData[1];  /* [cbIVKey + cbContentKey] */
+} WMDRM_IMPORT_CONTENT_KEY;
+cpp_quote( "#endif // WMDRM_IMPORT_CONTENT_KEY_DEFINED" )
+
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// structure to hold the encrypted Session and Content Keys for Secure Import
+//
+///////////////////////////////////////////////////////////////////////////////
+cpp_quote( "#ifndef WMDRM_IMPORT_INIT_STRUCT_DEFINED" )
+cpp_quote( "#define WMDRM_IMPORT_INIT_STRUCT_DEFINED 1")
+typedef struct WMDRM_IMPORT_INIT_STRUCT
+{
+    DWORD    dwVersion;
+    DWORD    cbEncryptedSessionKeyMessage;
+    BYTE    *pbEncryptedSessionKeyMessage;
+    DWORD    cbEncryptedKeyMessage;
+    BYTE    *pbEncryptedKeyMessage;
+} WMDRM_IMPORT_INIT_STRUCT;
+cpp_quote( "#endif // WMDRM_IMPORT_INIT_STRUCT_DEFINED" )
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */")
+#pragma endregion
+

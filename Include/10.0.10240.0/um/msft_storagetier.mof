@@ -1,0 +1,310 @@
+//============================================================================
+// Copyright (C) Microsoft Corporation, All rights reserved.
+//============================================================================
+//
+
+
+[ClassVersion( "1.0" ), Abstract,
+Description ( "A storage tier." )]
+class MSFT_StorageTier : MSFT_StorageObject {
+
+    [Description( "Friendly name of the storage tier, defined by the user" )]
+    String FriendlyName;
+
+    [Description( "Media type of this storage tier" ),
+     ValueMap { "0", "3", "4" },
+     Values { "Unspecified", "HDD", "SSD" }]
+    UInt16 MediaType;
+
+    [Description( "Size of the tier on the virtual disk. This property is available only when the storage tier is "
+                       "part of a virtual disk. The property is unspecified for pool-level storage tiers." )]
+    UInt64 Size;
+
+    [Description(
+        "A user settable description of the storage tier"
+        )]
+    String Description;
+
+
+    //
+    // Method: DeleteObject
+    //
+
+    [Description(
+        "This method deletes the storage tier."
+        "This method is available only when the SupportsStorageTierDeletion property"
+        "on the storage subsystem is set to TRUE. If it is set to FALSE, this method"
+        "will fail with MI_RESULT_NOT_SUPPORTED."
+        ),
+        ValueMap {
+            "0", "1", "2", "3", "4", "5",
+            "40001", "40002",
+            "46000", "46001",
+            "48007"
+            },
+        Values {
+            // 0 - 39999
+            "Success", "Not Supported", "Unspecified Error",
+            "Timeout", "Failed", "Invalid Parameter",
+            // 40000 - 40999
+            "Access denied",
+            "There are not enough resources to complete the operation.",
+            // 46000 - 46999
+            "Cannot connect to the storage provider.",
+            "The storage provider cannot connect to the storage subsystem.",
+            // 48000 - 48999
+            "The storage pool could not complete the operation because its configuration is read-only." }]
+    UInt32 DeleteObject(
+
+        [Out, Description(
+            "If RunAsJob is set to TRUE and this method takes a while to execute, this parameter "
+            "returns a reference to the storage job used to track the long running operation."
+            )]
+        MSFT_StorageJob REF CreatedStorageJob,
+
+        [Out, Description(
+            "ExtendedStatus allows the storage provider to return extended (implementation "
+            "specific) error information."
+            ),
+            EmbeddedInstance("MSFT_StorageExtendedStatus")]
+        String ExtendedStatus
+        );
+
+
+    //
+    // Method: Resize
+    //
+
+    [Description(
+        "Resizes the storage tier on the virtual disk. This method is not available for pool-"
+        "level storage tiers."
+        ),
+        ValueMap {
+            "0", "1", "2", "3", "4", "5",
+            "40000", "40001", "40002",
+            "46000", "46001",
+            "48007"
+            },
+        Values {
+            // 0 - 39999
+            "Success", "Not Supported", "Unspecified Error",
+            "Timeout", "Failed", "Invalid Parameter",
+            // 40000 - 40999
+            "Not enough available capacity",
+            "Access denied",
+            "There are not enough resources to complete the operation.",
+            // 46000 - 46999
+            "Cannot connect to the storage provider.",
+            "The storage provider cannot connect to the storage subsystem.",
+            // 48000 - 48999
+            "The storage pool could not complete the operation because its configuration is read-only." }]
+    UInt32 Resize(
+    
+        [In, Out]
+        UInt64 Size,
+
+        [Out, Description(
+            "If RunAsJob is set to TRUE and this method takes a while to execute, this parameter "
+            "returns a reference to the storage job used to track the long running operation."
+            )]
+        MSFT_StorageJob REF CreatedStorageJob,
+
+        [Out, Description(
+            "ExtendedStatus allows the storage provider to return extended (implementation "
+            "specific) error information."
+            ),
+            EmbeddedInstance("MSFT_StorageExtendedStatus")]
+        String ExtendedStatus
+    );
+
+
+    //
+    // Method: SetFriendlyName
+    //
+
+    [Description(
+        "This method allows the storage tier to be renamed."
+        ),
+        ValueMap {
+            "0", "1", "2", "3", "4", "5",
+            "40001", "40002",
+            "46000", "46001",
+            "48007"
+            },
+        Values {
+            // 0 - 39999
+            "Success", "Not Supported", "Unspecified Error",
+            "Timeout", "Failed", "Invalid Parameter",
+            // 40000 - 40999
+            "Access denied",
+            "There are not enough resources to complete the operation.",
+            // 46000 - 46999
+            "Cannot connect to the storage provider.",
+            "The storage provider cannot connect to the storage subsystem.",
+            // 48000 - 48999
+            "The storage pool could not complete the operation because its configuration is read-only." }]
+    UInt32 SetFriendlyName(
+
+        [In, Required]
+        String FriendlyName,
+
+        [Out, Description(
+            "ExtendedStatus allows the storage provider to return extended (implementation "
+            "specific) error information."
+            ),
+            EmbeddedInstance("MSFT_StorageExtendedStatus")]
+        String ExtendedStatus
+    );
+
+    
+    //
+    // Method: SetAttributes
+    //
+
+    [Description(
+        "This method allows the user to update or set various attributes on the storage tier. "
+        "Note that not all parameters must be specified, and only those given will be updated."
+        ),
+        ValueMap {
+            "0", "1", "2", "3", "4", "5",
+            "40001", "40002",
+            "46000", "46001",
+            "48007"
+            },
+        Values {
+            // 0 - 39999
+            "Success", "Not Supported", "Unspecified Error",
+            "Timeout", "Failed", "Invalid Parameter",
+            // 40000 - 40999
+            "Access denied",
+            "There are not enough resources to complete the operation.",
+            // 46000 - 46999
+            "Cannot connect to the storage provider.",
+            "The storage provider cannot connect to the storage subsystem.",
+            // 48000 - 48999
+            "The storage pool could not complete the operation because its configuration is read-only." }]
+    UInt32 SetAttributes(
+
+        [In, Required, Description( "Media type of this storage tier" ),
+            ValueMap { "3", "4" },
+            Values { "HDD", "SSD" }]
+        UInt16 MediaType,
+
+        [Out, Description(
+            "ExtendedStatus allows the storage provider to return extended (implementation "
+            "specific) error information."
+            ),
+            EmbeddedInstance("MSFT_StorageExtendedStatus")]
+        String ExtendedStatus
+    );
+
+
+    //
+    // Method: SetDescription
+    //
+
+    [Description(
+        "This method allows the storage tier's description to be changed."
+        ),
+        ValueMap {
+            "0", "1", "2", "3", "4", "5",
+            "40001", "40002",
+            "46000", "46001",
+            "48007"
+            },
+        Values {
+            // 0 - 39999
+            "Success", "Not Supported", "Unspecified Error",
+            "Timeout", "Failed", "Invalid Parameter",
+            // 40000 - 40999
+            "Access denied",
+            "There are not enough resources to complete the operation.",
+            // 46000 - 46999
+            "Cannot connect to the storage provider.",
+            "The storage provider cannot connect to the storage subsystem.",
+            // 48000 - 48999
+            "The storage pool could not complete the operation because its configuration is read-only." }]
+    UInt32 SetDescription(
+
+        [In, Required]
+        String Description,
+
+        [Out, Description(
+            "ExtendedStatus allows the storage provider to return extended (implementation "
+            "specific) error information."
+            ),
+            EmbeddedInstance("MSFT_StorageExtendedStatus")]
+        String ExtendedStatus
+        );
+
+
+    //
+    // Method: GetSupportedSize
+    //
+
+    [Description(
+        "This method returns the supported sizes for a new storage tier. These sizes can either "
+        "be returned in an array of all supported sizes, through a min, max, and divisor, or both."
+        ),
+        ValueMap {
+            "0", "1", "2", "3", "4", "5",
+            "40001", "40002", "40003",
+            "46000", "46001"
+            },
+        Values {
+            // 0 - 39999
+            "Success", "Not Supported", "Unspecified Error",
+            "Timeout", "Failed", "Invalid Parameter",
+            // 40000 - 40999
+            "Access denied",
+            "There are not enough resources to complete the operation.",
+            "Cache out of date",
+            // 46000 - 46999
+            "Cannot connect to the storage provider.",
+            "The storage provider cannot connect to the storage subsystem."
+            }]
+    UInt32 GetSupportedSize(
+
+        [In, Required, Description(
+            "Specifies the name of the resiliency setting that should be used when determining "
+            "the supported sizes. Note that the sizes returned may be different depending on "
+            "the resiliency setting."
+            )]
+        String ResiliencySettingName,
+
+        [Out, Description(
+            "This output parameter will contain an array of all of the supported sizes for the "
+            "storage tier. This parameter may be NULL if the number of supported sizes is large, "
+            "but is useful for storage tiers that only support a select number of tier sizes."
+            ), Units("Bytes")]
+        UInt64 SupportedSizes[],
+
+        [Out, Description(
+            "This parameter denotes the minimum supported size that a tier created in "
+            "this pool can be."
+            ), Units("Bytes")]
+        UInt64 TierSizeMin,
+
+        [Out, Description(
+            "This parameter denotes the maximum supported size that a tier created in "
+            "this pool can be."
+            ), Units("Bytes")]
+        UInt64 TierSizeMax,
+
+        [Out, Description(
+            "This parameter indicates the interval in which the supported sizes increment. For "
+            "example: If the minimum supported size is 10 GB, and this parameter is 2 GB, then "
+            "the supported sizes for this pool would be 10 GB, 12 GB, 14 GB, etc. until the "
+            "maximum supported size is reached."
+            ), Units("Bytes")]
+        UInt64 TierSizeDivisor,
+
+        [Out, Description(
+            "ExtendedStatus allows the storage provider to return extended (implementation "
+            "specific) error information."
+            ),
+            EmbeddedInstance("MSFT_StorageExtendedStatus")]
+        String ExtendedStatus
+    );
+};
+

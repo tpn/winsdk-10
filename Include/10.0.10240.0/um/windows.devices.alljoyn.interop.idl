@@ -1,0 +1,31 @@
+// IDL defines for COM APIs to support interop with Windows.Devices.AllJoyn
+
+cpp_quote("#include <alljoyn_c\BusAttachment.h>")
+
+import "Inspectable.idl";
+
+cpp_quote("#if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)")
+
+[
+    local,
+    uuid(fd89c65b-b50e-4a19-9d0c-b42b783281cd),
+]
+interface IWindowsDevicesAllJoynBusAttachmentInterop : IInspectable
+{
+    [propget] HRESULT Win32Handle([out, retval] UINT64* value);
+}
+
+[
+    local,
+    uuid(4b8f7505-b239-4e7b-88af-f6682575d861),
+]
+interface IWindowsDevicesAllJoynBusAttachmentFactoryInterop : IInspectable
+{
+    HRESULT CreateFromWin32Handle(
+        [in] UINT64 win32handle,
+        [in] boolean enableAboutData,
+        [in] REFIID riid,
+        [out, iid_is(riid)] void** ppv);
+}
+
+cpp_quote("#endif //(NTDDI_VERSION >= NTDDI_WINTHRESHOLD)")
