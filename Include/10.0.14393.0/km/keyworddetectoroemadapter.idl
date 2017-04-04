@@ -1,0 +1,201 @@
+//-----------------------------------------------------------------------------
+//
+// Keyword Detector Oem Adapter Interface Definition
+//
+// Purpose: 
+//      This file describes the Keyword Detector Oem interface to be used for
+//      hardware keyword spotters.
+//
+// Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//-----------------------------------------------------------------------------
+
+import "unknwn.idl";
+import "objidl.idl";
+import "wtypes.idl";
+import "mfobjects.idl";
+
+cpp_quote("#define _IKsControl_")
+cpp_quote("#include \"ks.h\"")
+cpp_quote("#include \"ksmedia.h\"")
+cpp_quote("#ifndef _KS_")
+
+typedef struct {
+    ULONG   Size;                      // Size of the data including this header
+    GUID    PatternType;               // Identifies the format of the pattern data
+} SOUNDDETECTOR_PATTERNHEADER;
+
+cpp_quote("#endif")
+
+// A13F4E6A-3BC5-46B4-88FB-F39014B51AC9
+cpp_quote("DEFINE_GUID(IID_IKeywordDetectorOemAdapter , 0xa13f4e6a, 0x3bc5, 0x46b4, 0x88, 0xfb, 0xf3, 0x90, 0x14, 0xb5, 0x1a, 0xc9);")
+
+[
+    object,
+    local,
+    uuid(A13F4E6A-3BC5-46B4-88FB-F39014B51AC9),
+    version(1.0),
+    pointer_default(unique)
+]
+
+interface IKeywordDetectorOemAdapter : IUnknown
+
+{
+
+    // Define the allowed keywords
+    typedef enum
+    {
+        KwInvalid          = 0,
+        KwVoiceAssistant   = 1,
+        KwSelection        = 2
+    } KEYWORDID;
+
+    typedef unsigned short LANGID;
+
+    // Struct to define the set of Ids that uniquely define a keyword
+    typedef struct {
+        KEYWORDID       KeywordId;
+        LANGID          LangId;
+    } KEYWORDSELECTOR;
+
+// -----------------------------------------------------------------------------
+//  GetCapabilities - Returns the keywords and langauges supported by the object.
+//
+//  Outputs:
+//      SupportsUserModels  - Pointer to BOOL indicating whether user specific training is supported
+//      KeywordIds          - Pointer to an array of KEYWORDIDs supported by this model data
+//      NumKeywords         - Pointer to the number of KEYWORDIDs in the array
+//      LangIds             - Pointer to an array of LANGIDs supported by the object
+//      NumLanguages        - Pointer to the number of LANGIDs in the array
+//      ppMediaType         - Pointer to a pointer to the media type required by the object
+//
+//  Return value:
+//      It returns S_OK if the function exit successfully. Otherwise it returns:
+//         E_POINTER    - One of the out parameter pointers is NULL
+//
+// -----------------------------------------------------------------------------
+    HRESULT GetCapabilities(
+        [out, ref] BOOL* SupportsUserModels,
+        [out, ptr] KEYWORDID** KeywordIds,
+        [out, ref] ULONG* NumKeywords,
+        [out, ptr] LANGID** LangIds,
+        [out, ref] ULONG* NumLanguages,
+        [out, ptr] IMFMediaType* *ppMediaType);
+
+// -----------------------------------------------------------------------------
+//  VerifyUserKeyword - Verifies the user recording for the given KEYWORDID.
+//
+//  Inputs:
+//      ModelData         - Pointer to IStream bound to model data for a given stored model
+//      KeywordId         - The KEYWORDID in this UserRecording
+//      LangId            - The LANGID the of the UserRecording
+//      KeywordEndBytePos - Byte position of the end of the keyword in the UserRecording.
+//                          A value of -1 indicates the position was unavailable.
+//      UserRecording     - Pointer to the buffer containing the raw data in the
+//                          appropriate format
+//
+//  Return value:
+//      It returns S_OK if the function exit successfully. Otherwise it returns:
+//         E_INVALIDARG   - UserModelData pointer is null or Keyword Id or LangId are invalid
+//         E_NO_MATCH     - The user recording didn't contain the keyword
+//
+//  Optional return values that may be implemented:
+//     E_VOICE_TOO_SOFT     - User recording isn't loud enough
+//     E_VOICE_TOO_LOUD     - User recording is too loud
+//     E_VOICE_TOO_SLOW     - User was speaking too slowly for recognition
+//     E_VOICE_TOO_FAST     - User was speaking too fast for recognition
+//     E_VOICE_PROCESSING_ERROR - An unrecoverable error occurred
+//
+// -----------------------------------------------------------------------------
+HRESULT VerifyUserKeyword([in, ptr] IStream* ModelData,
+    [in] KEYWORDID KeywordId,
+    [in] LANGID LangId,
+    [in] LONG KeywordEndBytePos,
+    [in, ptr] IMFMediaBuffer* UserRecording);
+
+// -----------------------------------------------------------------------------
+//  ComputeAndAddUserModelData - Adds the user specific model data to an existing
+//                               model data blob.
+//
+//  Inputs:
+//      ModelData          - Pointer to IStream bound to model data, updated by this call
+//      KeywordSelector    - The KeywordSelector that uniquely identifies this model
+//      KeywordEndBytePos  - A pointer to an array byte positions of the end of the
+//                           keyword in the corresponding UserRecording. A value of -1 
+//                           indicates the position was unavailable.
+//      UserRecordings     - Pointer to an array of pointers to the previously verified
+//                           recordings of the user
+//      NumUserRecordings  - Number of recordings
+//
+//  Return value:
+//      It returns S_OK if the function exit successfully. Otherwise it returns:
+//         E_POINTER    - UserModelData pointer is null
+//         E_INVALIDARG - One or more of the KEYWORDSELECTORs contains invalid ids
+//         HRESULT_FROM_WIN32(ERROR_GEN_FAILURE) = unable to complete the processing.
+//
+// -----------------------------------------------------------------------------
+HRESULT ComputeAndAddUserModelData([in, out, ptr] IStream* ModelData,
+    [in] KEYWORDSELECTOR KeywordSelector,
+    [in, ptr] LONG *KeywordEndBytePos,
+    [in, ptr] IMFMediaBuffer **UserRecordings,
+    [in] ULONG NumUserRecordings);
+
+// -----------------------------------------------------------------------------
+//  BuildArmingPatternData - Builds the pattern data to be used on a subsequent 
+//                           arm request.
+//
+//  Inputs:
+//      UserModelData    - Pointer to IStream bound to model data
+//      KeywordSelectors - Pointer to the array of KEYWORDSELECTOR structs to be
+//                         detected
+//      NumKeywordSelectors - Number of KEYWORDSELECTOR structs passed
+//
+//  Outputs:
+//      ppPatternData   - Pointer to a pointer to the pattern data created to reflect
+//                        the input keyword/user pairs for an arm
+//
+//  Return value:
+//      It returns S_OK if the function exit successfully. Otherwise it returns:
+//         E_INVALIDARG - UserModelData pointer is null or one or more of the KEYWORDSELECTORs 
+//                        contains invalid ids
+//         HRESULT_FROM_WIN32(ERROR_GEN_FAILURE) = unable to complete the processing.
+//
+// -----------------------------------------------------------------------------
+    HRESULT BuildArmingPatternData([in, ptr] IStream *UserModelData,
+        [in, ptr] KEYWORDSELECTOR *KeywordSelectors,
+        [in] ULONG NumKeywordSelectors,
+        [out, ptr] SOUNDDETECTOR_PATTERNHEADER **ppPatternData);
+
+// -----------------------------------------------------------------------------
+//  ParseDetectionResultData - Uses the input model data and SOUNDDETECTOR_PATTERNHEADER
+//                             to determine the KEYWORDID,LANGID and BOOL whether a specific user was detected.
+//
+//  Inputs:
+//      UserModelData   - Pointer to IStream bound to model data for the arming pattern
+//      Result          - Pointer to the SOUNDDETECTOR_PATTERNHEADER from DDI
+//
+//  Outputs:
+//      KeywordId       - The KEYWORDID detected
+//      LangId          - The LANGID detected
+//      pIsUserMatch    - BOOL indicating whether a specific user is matched
+//      KeywordStartPerformanceCounterValue - Keyword start time, if available, else zero
+//      KeywordEndPerformanceCounterValue   - Keyword end time, if available, else zero
+//
+//  Return value:
+//      It returns S_OK if the function exit successfully. Otherwise it returns:
+//         E_INVALIDARG - UserModelData or Result pointer is null
+//         E_POINTER    - One or more of the out parameter pointers is null
+//         HRESULT_FROM_WIN32(ERROR_GEN_FAILURE) = unable to complete the processing.
+//         E_HW_RESET   - The hardware reset and a rearm will be required
+//
+// -----------------------------------------------------------------------------
+    HRESULT ParseDetectionResultData([in, ptr] IStream *UserModelData,
+        [in, ptr] SOUNDDETECTOR_PATTERNHEADER *Result,
+        [out, ptr] KEYWORDID *KeywordId,
+        [out, ptr] LANGID *LangId,
+        [out, ptr] BOOL *pIsUserMatch,
+        [out, ptr] ULONG64 *KeywordStartPerformanceCounterValue,
+        [out, ptr] ULONG64 *KeywordEndPerformanceCounterValue);
+};
+// {76882AA2-2E80-48F1-A14E-4DB1FAC1F849}
+cpp_quote("DEFINE_GUID(CLSID_KeywordDetectorOemAdapter, 0x76882aa2, 0x2e80, 0x48f1, 0xa1, 0x4e, 0x4d, 0xb1, 0xfa, 0xc1, 0xf8, 0x49);")

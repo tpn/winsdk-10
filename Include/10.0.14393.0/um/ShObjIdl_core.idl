@@ -1,0 +1,530 @@
+//
+//  Microsoft Windows
+//  Copyright (c) Microsoft Corporation. All rights reserved.
+//
+
+import "objidl.idl";
+import "shtypes.idl";
+import "propsys.idl";
+import "servprov.idl";
+
+// IExecuteCommand
+[
+    uuid(7F9185B0-CB92-43c5-80A9-92277A4F7B54),
+    object,
+    pointer_default(unique)
+]
+interface IExecuteCommand : IUnknown
+{
+    // key state values MK_CONTROL & MK_SHIFT
+    HRESULT SetKeyState([in] DWORD grfKeyState);
+
+    // for context menu invokes this comes from CMINVOKECOMMANDINFO.lpParameters
+    HRESULT SetParameters([in, string] LPCWSTR pszParameters);
+
+    // default Position = center of default monitor
+    HRESULT SetPosition([in] POINT pt);
+
+    // default = SW_NORMAL
+    HRESULT SetShowWindow([in] int nShow);
+
+    // default = FALSE
+    HRESULT SetNoShowUI([in] BOOL fNoShowUI);
+
+    // default Directory = GetCurrentDirectory()
+    HRESULT SetDirectory([in, string] LPCWSTR pszDirectory);
+
+    // this is where the work happens!
+    HRESULT Execute();
+}
+
+// IShellFolder::GetAttributesOf flags
+// SFGAO_CANLINK: If this bit is set on an item in the shell folder, a
+//            'Create Shortcut' menu item will be added to the File
+//            menu and context menus for the item.  If the user selects
+//            that command, your IContextMenu::InvokeCommand() will be called
+//            with 'link'.
+//                 That flag will also be used to determine if 'Create Shortcut'
+//            should be added when the item in your folder is dragged to another
+//            folder.
+cpp_quote("#define SFGAO_CANCOPY           DROPEFFECT_COPY // Objects can be copied    (0x1)")
+cpp_quote("#define SFGAO_CANMOVE           DROPEFFECT_MOVE // Objects can be moved     (0x2)")
+cpp_quote("#define SFGAO_CANLINK           DROPEFFECT_LINK // Objects can be linked    (0x4)")
+cpp_quote("#define SFGAO_STORAGE           0x00000008L     // supports BindToObject(IID_IStorage)")
+cpp_quote("#define SFGAO_CANRENAME         0x00000010L     // Objects can be renamed")
+cpp_quote("#define SFGAO_CANDELETE         0x00000020L     // Objects can be deleted")
+cpp_quote("#define SFGAO_HASPROPSHEET      0x00000040L     // Objects have property sheets")
+//         unused                          0x00000080
+cpp_quote("#define SFGAO_DROPTARGET        0x00000100L     // Objects are drop target")
+cpp_quote("#define SFGAO_CAPABILITYMASK    0x00000177L")
+//         unused                          0x00000200
+//         unused                          0x00000400
+//         unused                          0x00000800
+cpp_quote("#define SFGAO_SYSTEM            0x00001000L     // System object")
+cpp_quote("#define SFGAO_ENCRYPTED         0x00002000L     // Object is encrypted (use alt color)")
+cpp_quote("#define SFGAO_ISSLOW            0x00004000L     // 'Slow' object")
+cpp_quote("#define SFGAO_GHOSTED           0x00008000L     // Ghosted icon")
+cpp_quote("#define SFGAO_LINK              0x00010000L     // Shortcut (link)")
+cpp_quote("#define SFGAO_SHARE             0x00020000L     // Shared")
+cpp_quote("#define SFGAO_READONLY          0x00040000L     // Read-only")
+cpp_quote("#define SFGAO_HIDDEN            0x00080000L     // Hidden object")
+cpp_quote("#define SFGAO_DISPLAYATTRMASK   0x000FC000L")
+cpp_quote("#define SFGAO_FILESYSANCESTOR   0x10000000L     // May contain children with SFGAO_FILESYSTEM")
+cpp_quote("#define SFGAO_FOLDER            0x20000000L     // Support BindToObject(IID_IShellFolder)")
+cpp_quote("#define SFGAO_FILESYSTEM        0x40000000L     // Is a win32 file system object (file/folder/root)")
+cpp_quote("#define SFGAO_HASSUBFOLDER      0x80000000L     // May contain children with SFGAO_FOLDER (may be slow)")
+cpp_quote("#define SFGAO_CONTENTSMASK      0x80000000L")
+cpp_quote("#define SFGAO_VALIDATE          0x01000000L     // Invalidate cached information (may be slow)")
+cpp_quote("#define SFGAO_REMOVABLE         0x02000000L     // Is this removeable media?")
+cpp_quote("#define SFGAO_COMPRESSED        0x04000000L     // Object is compressed (use alt color)")
+cpp_quote("#define SFGAO_BROWSABLE         0x08000000L     // Supports IShellFolder, but only implements CreateViewObject() (non-folder view)")
+cpp_quote("#define SFGAO_NONENUMERATED     0x00100000L     // Is a non-enumerated object (should be hidden)")
+cpp_quote("#define SFGAO_NEWCONTENT        0x00200000L     // Should show bold in explorer tree")
+cpp_quote("#define SFGAO_CANMONIKER        0x00400000L     // Obsolete")
+cpp_quote("#define SFGAO_HASSTORAGE        0x00400000L     // Obsolete")
+cpp_quote("#define SFGAO_STREAM            0x00400000L     // Supports BindToObject(IID_IStream)")
+cpp_quote("#define SFGAO_STORAGEANCESTOR   0x00800000L     // May contain children with SFGAO_STORAGE or SFGAO_STREAM")
+cpp_quote("#define SFGAO_STORAGECAPMASK    0x70C50008L     // For determining storage capabilities, ie for open/save semantics")
+cpp_quote("#define SFGAO_PKEYSFGAOMASK     0x81044000L     // Attributes that are masked out for PKEY_SFGAOFlags because they are considered to cause slow calculations or lack context (SFGAO_VALIDATE | SFGAO_ISSLOW | SFGAO_HASSUBFOLDER and others)")
+
+typedef ULONG SFGAOF;
+
+[
+    uuid(cb728b20-f786-11ce-92ad-00aa00a74cd0), // IID_IProfferService
+    object,
+    pointer_default(unique)
+]
+interface IProfferService : IUnknown
+{
+    HRESULT ProfferService(
+        [in] REFGUID guidService,
+        [in] IServiceProvider *psp,
+        [out] DWORD *pdwCookie);
+
+    HRESULT RevokeService([in] DWORD dwCookie);
+}
+
+cpp_quote("#define SID_SProfferService IID_IProfferService    // nearest service that you can proffer to")
+
+//  Shell Namespace helper
+[
+    uuid(43826d1e-e718-42ee-bc55-a1e261c37bfe),
+    object,
+    pointer_default(unique)
+]
+interface IShellItem : IUnknown
+{
+    typedef [v1_enum] enum _SIGDN
+    {                                                         // lower word (& with 0xFFFF)
+        SIGDN_NORMALDISPLAY               = 0x00000000,       // SHGDN_NORMAL
+        SIGDN_PARENTRELATIVEPARSING       = (int) 0x80018001, // SHGDN_INFOLDER | SHGDN_FORPARSING
+        SIGDN_DESKTOPABSOLUTEPARSING      = (int) 0x80028000, // SHGDN_FORPARSING
+        SIGDN_PARENTRELATIVEEDITING       = (int) 0x80031001, // SHGDN_INFOLDER | SHGDN_FOREDITING
+        SIGDN_DESKTOPABSOLUTEEDITING      = (int) 0x8004c000, // SHGDN_FORPARSING | SHGDN_FORADDRESSBAR
+        SIGDN_FILESYSPATH                 = (int) 0x80058000, // SHGDN_FORPARSING
+        SIGDN_URL                         = (int) 0x80068000, // SHGDN_FORPARSING
+        SIGDN_PARENTRELATIVEFORADDRESSBAR = (int) 0x8007c001, // SHGDN_INFOLDER | SHGDN_FORPARSING | SHGDN_FORADDRESSBAR
+        SIGDN_PARENTRELATIVE              = (int) 0x80080001, // SHGDN_INFOLDER
+        SIGDN_PARENTRELATIVEFORUI         = (int) 0x80094001, // SHGDN_INFOLDER | SHGDN_FORADDRESSBAR
+    } SIGDN;
+
+
+    //  SICHINT_DISPLAY         iOrder based on display in a folder view
+    //  SICHINT_ALLFIELDS       exact instance compare
+    //  SICHINT_CANONICAL       iOrder based on canonical name (better performance)
+    [v1_enum] enum _SICHINTF
+    {
+        SICHINT_DISPLAY         = 0x00000000,
+        SICHINT_ALLFIELDS       = (int) 0x80000000,
+        SICHINT_CANONICAL       = 0x10000000,
+        SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL = 0x20000000,
+    };
+    typedef DWORD SICHINTF;
+
+    HRESULT BindToHandler(
+        [in, unique] IBindCtx *pbc,
+        [in] REFGUID bhid,
+        [in] REFIID riid,
+        [out, iid_is(riid)] void **ppv);
+
+    HRESULT GetParent([out] IShellItem **ppsi);
+
+midl_pragma warning( disable: 2495 ) // allow the annotation here, it is safe and useful
+    HRESULT GetDisplayName(
+        [in] SIGDN sigdnName,
+        [out, string, annotation("_Outptr_result_nullonfailure_")] LPWSTR *ppszName);
+midl_pragma warning( default: 2495 ) // annotation() only allowed on local methods/interfaces
+
+    HRESULT GetAttributes(
+        [in] SFGAOF sfgaoMask,
+        [out] SFGAOF *psfgaoAttribs);
+
+    HRESULT Compare(
+        [in] IShellItem *psi,
+        [in] SICHINTF hint,
+        [out] int *piOrder);
+}
+
+// Shell Namespace helper 2
+[
+    uuid(7e9fb0d3-919f-4307-ab2e-9b1860310c93),
+    object,
+    pointer_default(unique)
+]
+interface IShellItem2 : IShellItem
+{
+    HRESULT GetPropertyStore(
+        [in] GETPROPERTYSTOREFLAGS flags,
+        [in] REFIID riid,
+        [out, iid_is(riid)] void **ppv);
+
+    HRESULT GetPropertyStoreWithCreateObject(
+        [in] GETPROPERTYSTOREFLAGS flags,
+        [in] IUnknown *punkCreateObject,   // factory for low-rights creation of type ICreateObject
+        [in] REFIID riid,
+        [out, iid_is(riid)] void **ppv);
+
+    HRESULT GetPropertyStoreForKeys(
+        [in, size_is(cKeys)] const PROPERTYKEY *rgKeys,
+        [in] UINT cKeys,
+        [in] GETPROPERTYSTOREFLAGS flags,
+        [in] REFIID riid,
+        [out, iid_is(riid)] void **ppv);
+
+    HRESULT GetPropertyDescriptionList(
+        [in] REFPROPERTYKEY keyType,
+        [in] REFIID riid,
+        [out, iid_is(riid)] void **ppv);
+
+    // Ensures any cached information in this item is up to date, or returns __HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) if the item does not exist.
+    HRESULT Update([in, unique] IBindCtx *pbc);
+
+    HRESULT GetProperty(
+        [in] REFPROPERTYKEY key,
+        [out] PROPVARIANT *ppropvar);
+
+    HRESULT GetCLSID(
+        [in] REFPROPERTYKEY key,
+        [out] CLSID *pclsid);
+
+    HRESULT GetFileTime(
+        [in] REFPROPERTYKEY key,
+        [out] FILETIME *pft);
+
+    HRESULT GetInt32(
+        [in] REFPROPERTYKEY key,
+        [out] int *pi);
+
+    HRESULT GetString(
+        [in] REFPROPERTYKEY key,
+        [out, string] LPWSTR *ppsz);
+
+    HRESULT GetUInt32(
+        [in] REFPROPERTYKEY key,
+        [out] ULONG *pui);
+
+    HRESULT GetUInt64(
+        [in] REFPROPERTYKEY key,
+        [out] ULONGLONG *pull);
+
+    HRESULT GetBool(
+        [in] REFPROPERTYKEY key,
+        [out] BOOL *pf);
+}
+
+[v1_enum] enum _SIIGBF
+{
+    SIIGBF_RESIZETOFIT          = 0x00000000,   // If necessary, shrink the bitmap (preserving aspect ratio) so width and height fit the given size.
+    SIIGBF_BIGGERSIZEOK         = 0x00000001,   // A larger bitmap than requested may be returned, the caller will manage scaling down (inverse of SIIGBF_RESIZETOFIT).
+    SIIGBF_MEMORYONLY           = 0x00000002,   // Return the item only if it is already in memory. Do not access the disk even if the item is cached.
+    SIIGBF_ICONONLY             = 0x00000004,   // Return only the icon, never the thumbnail.
+    SIIGBF_THUMBNAILONLY        = 0x00000008,   // Return only the thumbnail, never the icon.
+    SIIGBF_INCACHEONLY          = 0x00000010,   // Allows access to the disk, but only to retrieve a cached item.
+    SIIGBF_CROPTOSQUARE         = 0x00000020,   // Windows 8 and later. If necessary, crop the bitmap to a square.
+    SIIGBF_WIDETHUMBNAILS       = 0x00000040,   // Windows 8 and later. Stretch and crop the bitmap to a .7 aspect ratio.
+    SIIGBF_ICONBACKGROUND       = 0x00000080,   // Windows 8 and later. If returning an icon, paint a background using the associated app's registered background color.
+    SIIGBF_SCALEUP              = 0x00000100,   // Windows 8 and later. If necessary, stretch the bitmap so width and height fit the given size.
+
+};
+typedef int SIIGBF;
+
+
+[
+    uuid(bcc18b79-ba16-442f-80c4-8a59c30c463b),
+    object,
+    pointer_default(unique)
+]
+interface IShellItemImageFactory : IUnknown
+{
+    // bitmap returned is a DIB; color format is RGB24, RGB32 or PARGB32
+    HRESULT GetImage(
+        [in] SIZE size,
+        [in] SIIGBF flags,
+        [out] HBITMAP *phbm);
+}
+
+[
+    uuid(000214F9-0000-0000-C000-000000000046),
+    object,
+    pointer_default(unique)
+]
+interface IShellLinkW : IUnknown
+{
+    HRESULT GetPath(
+        [out, string, size_is(cch)] LPWSTR pszFile,
+        [in] int cch,
+        [in, out, unique] WIN32_FIND_DATAW *pfd,
+        [in] DWORD fFlags);
+
+    HRESULT GetIDList(
+        [out] PIDLIST_ABSOLUTE * ppidl);
+
+    HRESULT SetIDList(
+        [in, unique] PCIDLIST_ABSOLUTE pidl);
+
+    HRESULT GetDescription(
+        [out, string, size_is(cch)] LPWSTR pszName,
+        int cch);
+
+    HRESULT SetDescription(
+        [in, string] LPCWSTR pszName);
+
+    HRESULT GetWorkingDirectory(
+        [out, string, size_is(cch)] LPWSTR pszDir,
+        int cch);
+
+    HRESULT SetWorkingDirectory(
+        [in, string] LPCWSTR pszDir);
+
+    HRESULT GetArguments(
+        [out, string, size_is(cch)] LPWSTR pszArgs,
+        [in] int cch);
+
+    HRESULT SetArguments(
+        [in, string] LPCWSTR pszArgs);
+
+    HRESULT GetHotkey(
+        [out] WORD *pwHotkey);
+
+    HRESULT SetHotkey(
+        [in] WORD wHotkey);
+
+    HRESULT GetShowCmd(
+        [out] int *piShowCmd);
+
+    HRESULT SetShowCmd(
+        [in] int iShowCmd);
+
+    HRESULT GetIconLocation(
+        [out, string, size_is(cch)] LPWSTR pszIconPath,
+        [in] int cch,
+        [out] int *piIcon);
+
+    HRESULT SetIconLocation(
+        [in, string] LPCWSTR pszIconPath,
+        [in] int iIcon);
+
+    HRESULT SetRelativePath(
+        [in, string] LPCWSTR pszPathRel,
+        [in] DWORD dwReserved);
+
+    HRESULT Resolve(
+        [in, unique] HWND hwnd,
+        [in] DWORD fFlags);
+
+    HRESULT SetPath(
+        [in, string] LPCWSTR pszFile);
+}
+
+[
+    uuid(7307055c-b24a-486b-9f25-163e597a28a9),
+    object,
+    pointer_default(unique)
+]
+interface IQueryContinue : IUnknown
+{
+    HRESULT QueryContinue();    // S_OK -> Continue, S_FALSE -> Cancel
+}
+
+cpp_quote("#if (NTDDI_VERSION >= NTDDI_VISTA)")
+
+typedef [v1_enum] enum SHARE_ROLE
+{
+    SHARE_ROLE_INVALID = -1,
+    SHARE_ROLE_READER = 0,
+    SHARE_ROLE_CONTRIBUTOR = 1,
+    SHARE_ROLE_CO_OWNER = 2,
+    SHARE_ROLE_OWNER = 3,
+    SHARE_ROLE_CUSTOM = 4,
+    SHARE_ROLE_MIXED = 5,
+}
+SHARE_ROLE;
+
+typedef [v1_enum] enum DEF_SHARE_ID
+{
+    DEFSHAREID_USERS = 1,
+    DEFSHAREID_PUBLIC = 2,
+}
+DEF_SHARE_ID;
+
+cpp_quote("#endif  // NTDDI_VISTA")
+
+cpp_quote("#if (NTDDI_VERSION >= NTDDI_WIN8)")
+
+typedef [v1_enum] enum PACKAGE_EXECUTION_STATE
+{
+    PES_UNKNOWN    = 0,
+    PES_RUNNING    = 1,
+    PES_SUSPENDING = 2,
+    PES_SUSPENDED  = 3,
+    PES_TERMINATED = 4
+} PACKAGE_EXECUTION_STATE;
+
+[
+    object,
+    uuid(1BB12A62-2AD8-432B-8CCF-0C2C52AFCD5B)
+]
+interface IPackageExecutionStateChangeNotification : IUnknown
+{
+    HRESULT OnStateChanged([in, string] LPCWSTR pszPackageFullName, [in] PACKAGE_EXECUTION_STATE pesNewState);
+}
+
+// This enum matches up exactly with the WinRT enum Windows.UI.ViewManagement.ApplicationViewState.
+// Do NOT modify without updating it there as well.
+typedef [v1_enum] enum APPLICATION_VIEW_STATE
+{
+    AVS_FULLSCREEN_LANDSCAPE = 0,
+    AVS_FILLED,
+    AVS_SNAPPED,
+    AVS_FULLSCREEN_PORTRAIT,
+} APPLICATION_VIEW_STATE;
+
+// This enum matches up exactly with the WinRT enum Windows.UI.Input.EdgeGestureKind.
+// Do NOT modify without updating it there as well.
+typedef [v1_enum] enum EDGE_GESTURE_KIND
+{
+    EGK_TOUCH = 0,
+    EGK_KEYBOARD,
+    EGK_MOUSE,
+} EDGE_GESTURE_KIND;
+
+[
+    object,
+    uuid(2A3DEE9A-E31D-46D6-8508-BCC597DB3557)
+]
+interface IApplicationDesignModeSettings : IUnknown
+{
+    HRESULT SetNativeDisplaySize([in] SIZE nativeDisplaySizePixels);
+    HRESULT SetScaleFactor([in] DEVICE_SCALE_FACTOR scaleFactor);
+    HRESULT SetApplicationViewState([in] APPLICATION_VIEW_STATE viewState);
+    HRESULT ComputeApplicationSize([out] SIZE *applicationSizePixels);
+    HRESULT IsApplicationViewStateSupported(
+        [in] APPLICATION_VIEW_STATE viewState,
+        [in] SIZE nativeDisplaySizePixels,
+        [in] DEVICE_SCALE_FACTOR scaleFactor,
+        [out] BOOL *supported);
+    HRESULT TriggerEdgeGesture([in] EDGE_GESTURE_KIND edgeGestureKind);
+}
+
+typedef [v1_enum] enum NATIVE_DISPLAY_ORIENTATION
+{
+    NDO_LANDSCAPE = 0,
+    NDO_PORTRAIT,
+} NATIVE_DISPLAY_ORIENTATION;
+
+// This enum matches up exactly with the WinRT enum Windows.UI.ViewManagement.ApplicationViewOrientation.
+// Do NOT modify without updating it there as well.
+typedef [v1_enum] enum APPLICATION_VIEW_ORIENTATION
+{
+    AVO_LANDSCAPE = 0,
+    AVO_PORTRAIT,
+} APPLICATION_VIEW_ORIENTATION;
+
+typedef [v1_enum] enum ADJACENT_DISPLAY_EDGES
+{
+    ADE_NONE    = 0,
+    ADE_LEFT    = 0x1,
+    ADE_RIGHT   = 0x2,
+} ADJACENT_DISPLAY_EDGES;
+cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(ADJACENT_DISPLAY_EDGES)")
+
+cpp_quote("#if (NTDDI_VERSION >= NTDDI_WINBLUE)")
+
+typedef [v1_enum] enum APPLICATION_VIEW_MIN_WIDTH
+{
+    AVMW_DEFAULT    = 0,
+    AVMW_320        = 1,
+    AVMW_500        = 2,
+} APPLICATION_VIEW_MIN_WIDTH;
+
+[
+    object,
+    uuid(490514E1-675A-4D6E-A58D-E54901B4CA2F)
+]
+
+interface IApplicationDesignModeSettings2 : IApplicationDesignModeSettings
+{
+    HRESULT SetNativeDisplayOrientation([in] NATIVE_DISPLAY_ORIENTATION nativeDisplayOrientation);
+    HRESULT SetApplicationViewOrientation([in] APPLICATION_VIEW_ORIENTATION viewOrientation);
+    HRESULT SetAdjacentDisplayEdges([in] ADJACENT_DISPLAY_EDGES adjacentDisplayEdges);
+    HRESULT SetIsOnLockScreen([in] BOOL isOnLockScreen);
+    HRESULT SetApplicationViewMinWidth([in] APPLICATION_VIEW_MIN_WIDTH viewMinWidth);
+    HRESULT GetApplicationSizeBounds([out] SIZE *minApplicationSizePixels, [out] SIZE *maxApplicationSizePixels);
+    HRESULT GetApplicationViewOrientation([in] SIZE applicationSizePixels, [out] APPLICATION_VIEW_ORIENTATION *viewOrientation);
+}
+
+cpp_quote("#endif // (NTDDI_VERSION >= NTDDI_WINBLUE)")
+
+// This enum exactly matches the WinRT enum Windows.UI.ViewManagement.ViewSizePreference.
+typedef [v1_enum] enum APPLICATION_VIEW_SIZE_PREFERENCE
+{
+    AVSP_DEFAULT     = 0,
+    AVSP_USE_LESS    = 1,
+    AVSP_USE_HALF    = 2,
+    AVSP_USE_MORE    = 3,
+    AVSP_USE_MINIMUM = 4,
+    AVSP_USE_NONE    = 5,
+} APPLICATION_VIEW_SIZE_PREFERENCE;
+
+cpp_quote("#endif // NTDDI_WIN8")
+
+// Implemented by objects the need to be provided a window, often an owner window for displaying UI.
+// Used by clients of those objects to provide the window.
+[
+    uuid(3E68D4BD-7135-4D10-8018-9FB6D9F33FA1),
+    object,
+    pointer_default(unique)
+]
+interface IInitializeWithWindow : IUnknown
+{
+    HRESULT Initialize([in] HWND hwnd);
+}
+
+cpp_quote("#if (NTDDI_VERSION >= NTDDI_WINBLUE)")
+
+typedef [v1_enum] enum FLYOUT_PLACEMENT
+{
+    FP_DEFAULT = 0,
+    FP_ABOVE,
+    FP_BELOW,
+    FP_LEFT,
+    FP_RIGHT,
+} FLYOUT_PLACEMENT;
+
+cpp_quote("#endif // NTDDI_WINBLUE")
+
+//  NOTE - this typelib is never registered anywhere
+[
+    uuid(56f9f44f-f74c-4e38-99bc-9f3ebd3d696a),
+    lcid(0x0000),
+    version(1.0)
+]
+library ShellCoreObjects
+{
+    // CLSID_ShellItem
+    [ uuid(9ac9fbe1-e0a2-4ad6-b4ee-e212013ea917) ] coclass ShellItem { interface IShellItem2; }
+
+    // CLSID_ApplicationDesignModeSettings
+    [ uuid(958a6fb5-dcb2-4faf-aafd-7fb054ad1a3b) ] coclass ApplicationDesignModeSettings { interface IApplicationDesignModeSettings2; }
+};
+

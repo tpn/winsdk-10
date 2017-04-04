@@ -1,0 +1,111 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// D3D11.4 IDL
+//
+// Contains interface definitions for the D3D11.4 API.
+//
+// Copyright (C) Microsoft Corporation
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+import "oaidl.idl";
+import "ocidl.idl";
+import "dxgi1_5.idl";
+import "d3dcommon.idl";
+
+import "d3d11_3.idl"; //
+cpp_quote( "#ifdef __cplusplus" )
+cpp_quote( "}" ) // extern C
+cpp_quote( "#endif" )
+cpp_quote( "#include \"d3d11_3.h\" //") //
+cpp_quote( "#ifdef __cplusplus" )
+cpp_quote( "extern \"C\"{" )
+cpp_quote( "#endif" )
+
+#pragma region App Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)")
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Device4
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+[ uuid( 8992ab71-02e6-4b8d-ba48-b056dcda42c4 ), object, local, pointer_default( unique ) ]
+interface ID3D11Device4
+    : ID3D11Device3
+{
+    HRESULT RegisterDeviceRemovedEvent(
+        [annotation("_In_")] HANDLE hEvent,
+        [annotation("_Out_")] DWORD* pdwCookie
+        );
+
+    void UnregisterDeviceRemoved( [annotation("_In_")] DWORD dwCookie );
+};
+
+//==================================================================================================================================
+//
+// Multithread Interface
+//
+//==================================================================================================================================
+[ uuid( 9B7E4E00-342C-4106-A19F-4F2704F689F0 ), object, local, pointer_default( unique ) ]
+interface ID3D11Multithread
+    : IUnknown
+{
+    void Enter();
+    void Leave();
+    BOOL SetMultithreadProtected( [annotation("_In_")] BOOL bMTProtect );
+    BOOL GetMultithreadProtected();
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// VideoContext2
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+[uuid(C4E7374C-6243-4D1B-AE87-52B4F740E261), object, local, pointer_default(unique)]
+interface ID3D11VideoContext2
+    : ID3D11VideoContext1
+{
+    void VideoProcessorSetOutputHDRMetaData(
+        [annotation("_In_")] ID3D11VideoProcessor* pVideoProcessor,
+        [annotation("_In_")] DXGI_HDR_METADATA_TYPE Type,
+        [annotation("_In_")] UINT Size,
+        [annotation("_In_reads_bytes_opt_(Size)")] const void* pHDRMetaData
+        );
+
+    void VideoProcessorGetOutputHDRMetaData(
+        [annotation("_In_")] ID3D11VideoProcessor* pVideoProcessor,
+        [annotation("_Out_")] DXGI_HDR_METADATA_TYPE* pType,
+        [annotation("_In_")] UINT Size,
+        [annotation("_Out_writes_bytes_opt_(Size)")] void* pMetaData
+        );
+
+    void VideoProcessorSetStreamHDRMetaData(
+        [annotation("_In_")] ID3D11VideoProcessor* pVideoProcessor,
+        [annotation("_In_")] UINT StreamIndex,
+        [annotation("_In_")] DXGI_HDR_METADATA_TYPE Type,
+        [annotation("_In_")] UINT Size,
+        [annotation("_In_reads_bytes_opt_(Size)")] const void* pHDRMetaData
+        );
+
+    void VideoProcessorGetStreamHDRMetaData(
+        [annotation("_In_")] ID3D11VideoProcessor* pVideoProcessor,
+        [annotation("_In_")] UINT StreamIndex,
+        [annotation("_Out_")] DXGI_HDR_METADATA_TYPE* pType,
+        [annotation("_In_")] UINT Size,
+        [annotation("_Out_writes_bytes_opt_(Size)")] void* pMetaData
+        );
+};
+
+typedef struct D3D11_FEATURE_DATA_D3D11_OPTIONS4
+{    
+    BOOL ExtendedNV12SharedTextureSupported;
+} D3D11_FEATURE_DATA_D3D11_OPTIONS4;
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) */")
+#pragma endregion
+
+cpp_quote( "DEFINE_GUID(IID_ID3D11Device4,0x8992ab71,0x02e6,0x4b8d,0xba,0x48,0xb0,0x56,0xdc,0xda,0x42,0xc4);" )
+cpp_quote( "DEFINE_GUID(IID_ID3D11Multithread,0x9B7E4E00,0x342C,0x4106,0xA1,0x9F,0x4F,0x27,0x04,0xF6,0x89,0xF0);" )
+cpp_quote( "DEFINE_GUID(IID_ID3D11VideoContext2,0xC4E7374C,0x6243,0x4D1B,0xAE,0x87,0x52,0xB4,0xF7,0x40,0xE2,0x61);" )

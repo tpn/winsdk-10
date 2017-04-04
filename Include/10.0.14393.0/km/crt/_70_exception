@@ -1,0 +1,228 @@
+// exception standard header for Microsoft
+#pragma once
+#ifndef _EXCEPTION_
+#define _EXCEPTION_
+#ifndef RC_INVOKED
+
+#ifdef _CRT_EXCEPTION_NO_MALLOC
+#ifdef  _MSC_VER
+#pragma push_macro("malloc")
+#pragma push_macro("free")
+#endif  /* _MSC_VER */
+#undef malloc
+#undef free
+#endif
+
+#if defined (_HAS_EXCEPTIONS)
+#if !_HAS_EXCEPTIONS
+#error "_HAS_EXCEPTIONS == 0 is not supported."
+#endif
+#endif
+
+#include <xstddef>
+
+#ifdef  _MSC_VER
+#pragma pack(push,_CRT_PACKING)
+#pragma warning(push,3)
+#endif  /* _MSC_VER */
+
+
+ #include <eh.h>
+ #include <malloc.h>
+ #include <crtdefs.h>
+
+#ifndef _ERRCODE_DEFINED
+#define _ERRCODE_DEFINED
+typedef int errcode;
+typedef int errno_t;
+#endif
+
+
+extern "C" size_t __cdecl strlen(_In_z_ const char *);
+
+#if _MSC_VER >= 1200
+#pragma warning(push)
+#pragma warning(disable:4995) /* memcpy is deprecated */
+#endif
+_Post_equal_to_(_Dst)
+_At_buffer_((unsigned char*)_Dst, _Iter_, _MaxCount, _Post_satisfies_(((unsigned char*)_Dst)[_Iter_] == ((unsigned char*)_Src)[_Iter_]))
+extern "C" void *  __cdecl memcpy(_Out_writes_bytes_all_(_MaxCount) void * _Dst, _In_reads_bytes_(_MaxCount) const void * _Src, _In_ size_t _MaxCount);
+#if _MSC_VER >= 1200
+#pragma warning(pop)
+#endif
+
+
+class _CRTEXP_PURE exception
+	{	// base of all library exceptions
+public:
+#if defined(_M_CEE_PURE)
+	__CLR_OR_THIS_CALL exception()
+        : _m_what(NULL), _m_doFree(0)
+    { }
+	__CLR_OR_THIS_CALL exception(const char *const& _What)
+    {
+        if (_What != NULL)
+        {
+            size_t _Buf_size = strlen( _What ) + 1;
+#pragma warning(push)
+#pragma warning(disable:4996)
+            _m_what = static_cast< char * >( malloc( _Buf_size ) );
+#pragma warning(pop)
+            if ( _m_what != NULL )
+            {
+                memcpy( const_cast<char *>(_m_what), _What, _Buf_size );
+            }
+        }
+        else
+        {
+            _m_what = NULL;
+        }
+        _m_doFree = 1;
+    }
+	__CLR_OR_THIS_CALL exception(const char *const& _What, int)
+    {
+        _m_what = _What;
+        _m_doFree = 0;
+    }
+	__CLR_OR_THIS_CALL exception(const exception& _That)
+    {
+        _m_doFree = _That._m_doFree;
+        if (_m_doFree)
+        {
+            if (_That._m_what != NULL)
+            {
+                size_t _Buf_size = strlen( _That._m_what ) + 1;
+#pragma warning(push)
+#pragma warning(disable:4996)
+                _m_what = static_cast< char * >( malloc( _Buf_size ) );
+#pragma warning(pop)
+                if (_m_what != NULL)                {
+                    memcpy( const_cast<char *>(_m_what), _That._m_what, _Buf_size );
+                }
+            }
+            else
+            {
+                _m_what = NULL;
+            }
+        }
+        else
+           _m_what = _That._m_what;
+    }
+	exception& __CLR_OR_THIS_CALL operator=(const exception& _That)
+    {
+        if (this != &_That)
+        {
+            this->exception::~exception();
+            this->exception::exception(_That);
+        }
+        return *this;
+    }
+	virtual __CLR_OR_THIS_CALL ~exception()
+    {
+        if (_m_doFree)
+#pragma warning(push)
+#pragma warning(disable:4996)
+            free( const_cast< char * >( _m_what ) );
+#pragma warning(pop)
+    }
+	virtual const char* __CLR_OR_THIS_CALL what() const
+    {
+        if ( _m_what != NULL )
+            return _m_what;
+        else
+            return "Unknown exception";
+    }
+#else /* _M_CEE_PURE */
+    __CLR_OR_THIS_CALL exception();
+    __CLR_OR_THIS_CALL exception(const char *const&);
+    __CLR_OR_THIS_CALL exception(const char *const&, int); // This is exported from 2003 msvcrt.dll but not XP msvcrt.dll.
+    __CLR_OR_THIS_CALL exception(const exception&);
+    exception& __CLR_OR_THIS_CALL operator=(const exception&);
+    virtual __CLR_OR_THIS_CALL ~exception();
+    virtual const char * __CLR_OR_THIS_CALL what() const;
+#endif /* _M_CEE_PURE */
+
+#if defined (_X86_)
+    friend void __SetExceptionString(exception* e, const char* String);
+#endif /* _SYSCRT */    
+
+private:
+	const char *_m_what;
+	int _m_doFree;
+	};
+
+#if defined (_X86_)
+__forceinline void __SetExceptionString(exception* e, const char* String) 
+{
+    if (!(e->_m_what) && !(e->_m_doFree))
+    {
+        e->_m_what = String;
+    }
+}
+#endif /* _SYSCRT */    
+
+ _STD_BEGIN
+using ::exception;
+
+using ::terminate_handler;
+using ::terminate;
+using ::unexpected;
+using ::unexpected_handler;
+
+
+typedef void (__cdecl *_Prhand)(const exception&);
+extern _CRTIMP2 _Prhand _Raise_handler;
+
+#if (defined (_M_CEE_PURE)) && !defined (_STATIC_MGDLIB) && !defined (_BUILDING_STATIC_MGDLIB_11)
+_MRTIMP_FUNCTION(bool) _uncaught_exception_m();
+inline bool __clrcall uncaught_exception() { return _uncaught_exception_m(); }
+#else
+_CRTIMP2 bool __CRTDECL uncaught_exception();
+#endif
+
+
+		// CLASS bad_exception
+class bad_exception : public exception
+	{	// base of all bad exceptions
+public:
+	__CLR_OR_THIS_CALL bad_exception(const char *_Message = _MESG("bad exception"))
+		_THROW0()
+		: exception(_Message)
+		{	// construct from message string
+		}
+
+	virtual __CLR_OR_THIS_CALL ~bad_exception() _THROW0()
+		{	// destroy the object
+		}
+
+#if !_HAS_EXCEPTIONS || (!defined (_MANAGED))
+protected:
+ 	virtual void __CLR_OR_THIS_CALL _Doraise() const
+		{	// raise this exception
+		_RAISE(*this);
+		}
+ #endif /* _HAS_EXCEPTIONS */
+
+	};
+_STD_END
+
+#ifdef  _MSC_VER
+#pragma warning(pop)
+#pragma pack(pop)
+
+#ifdef _CRT_EXCEPTION_NO_MALLOC
+#pragma pop_macro("malloc")
+#pragma pop_macro("free")
+#endif
+#endif  /* _MSC_VER */
+
+#endif /* RC_INVOKED */
+#endif /* _EXCEPTION_ */
+
+/*
+ * Copyright (c) 1992-2004 by P.J. Plauger.  ALL RIGHTS RESERVED.
+ * Consult your license regarding permissions and restrictions.
+ V4.03:0009 */
+// The file \sdpublic\sdk\inc\crt\_70_exception was reviewed by LCA in June 2011 and per license is
+//   acceptable for Microsoft use under Dealpoint ID 46582, 201971
+/* 88bf0570-3001-4e78-a5f2-be5765546192 */ 

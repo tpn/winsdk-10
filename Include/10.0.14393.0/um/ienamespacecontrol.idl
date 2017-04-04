@@ -1,0 +1,190 @@
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation. All Rights Reserved.
+//
+//  Contents:   IE Namespace Control interfaces
+//
+//----------------------------------------------------------------------------
+
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// IENamespaceControl.h")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// (C) Copyright Microsoft Corporation.  All Rights Reserved.")
+cpp_quote("//")
+cpp_quote("// THIS CODE AND INFORMATION IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF")
+cpp_quote("// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO")
+cpp_quote("// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A")
+cpp_quote("// PARTICULAR PURPOSE.")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("")
+cpp_quote("#pragma comment(lib,\"uuid.lib\")")
+cpp_quote("")
+cpp_quote("//---------------------------------------------------------------------------=")
+cpp_quote("// IE Namespace Control Interfaces.")
+cpp_quote("")
+
+import "shobjidl.idl";
+
+interface INamespaceProxy;
+interface INSCTree;
+interface INSCWinEventHandler;
+interface IShellFolderViewType;
+interface IShellFolderSearchable;
+
+
+cpp_quote("")
+cpp_quote("////////////////////////////////////////////////////////////////////////////")
+cpp_quote("//  Interface Definitions")
+
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation, 1995-2009.
+//
+//  Contents:    INamespaceProxy interface definition
+//
+//----------------------------------------------------------------------------
+cpp_quote("#ifndef _LPNAMESPACEPROXY_DEFINED")
+cpp_quote("#define _LPNAMESPACEPROXY_DEFINED")
+[
+    helpstring("Interface to handle nsc specifics for different bands"),
+    uuid(CF1609EC-FA4B-4818-AB01-55643367E66D),
+    object,
+    local,
+]
+interface INamespaceProxy : IUnknown
+{
+    HRESULT GetNavigateTarget([in] PCIDLIST_ABSOLUTE pidl, [out] PIDLIST_ABSOLUTE * ppidlTarget, [out] ULONG * pulAttrib);
+    HRESULT Invoke([in] PCIDLIST_ABSOLUTE pidl);
+    HRESULT OnSelectionChanged([in] PCIDLIST_ABSOLUTE pidl);
+    HRESULT RefreshFlags([out] DWORD *pdwStyle, [out] DWORD *pdwExStyle, [out] DWORD *dwEnum);
+    HRESULT CacheItem([in] PCIDLIST_ABSOLUTE pidl);
+}
+cpp_quote("#endif")
+
+cpp_quote("#ifndef _LPNSCTREE_DEFINED")
+cpp_quote("#define _LPNSCTREE_DEFINED")
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation, 1995-2009.
+//
+//  Contents:    INSCTree interface definition
+//
+//----------------------------------------------------------------------------
+
+cpp_quote("#define NSS_DROPTARGET          0x0001")
+cpp_quote("#define NSS_BROWSERSELECT       0x0002")
+cpp_quote("#define NSS_NOHISTSELECT        0x0004")
+cpp_quote("#define NSS_MULTISELECT         0x0008")
+cpp_quote("#define NSS_BORDER              0x0010")
+cpp_quote("#define NSS_NORMALTREEVIEW      0x0020")
+cpp_quote("#define NSS_NONFOLDERSONTOP     0x0040")
+
+typedef enum tagnscTreeMode
+{
+    MODE_NORMAL           = 0x0000,
+    MODE_CONTROL          = 0x0001,
+    MODE_HISTORY          = 0x0002,
+    MODE_FAVORITES        = 0x0004,
+    MODE_CUSTOM           = 0x0008,
+    MODE_FEEDS            = 0x0010
+} nscTreeMode;
+
+[
+    uuid(43A8F463-4222-11d2-B641-006097DF5BD4),
+    helpstring("Namespace tree control interface"),
+    local,
+]
+interface INSCTree : IUnknown
+{
+    HRESULT CreateTree([in] HWND hwndParent, [in] DWORD dwStyles, [out] HWND *phwnd);
+    HRESULT Initialize([in] PCIDLIST_ABSOLUTE pidlRoot, [in] DWORD grfFlags, [in] DWORD dwFlags);
+    HRESULT ShowWindow([in] BOOL fShow);
+    HRESULT Refresh();
+    HRESULT GetSelectedItem([out] PIDLIST_ABSOLUTE * ppidl, [in] int nItem);
+    HRESULT SetSelectedItem([in] PCIDLIST_ABSOLUTE pidl, [in] BOOL fCreate, [in] BOOL fReinsert, [in] int nItem);
+    HRESULT GetNscMode([out] UINT * pnMode);
+    HRESULT SetNscMode([in] UINT nMode);
+    HRESULT GetSelectedItemName([in, out, annotation("_Inout_updates_(cchName)")] LPWSTR pszName, [in] DWORD cchName);
+    HRESULT BindToSelectedItemParent([in] REFIID riid, [out, iid_is(riid)] void **ppv, [out] PITEMID_CHILD *ppidl);
+    BOOL    InLabelEdit();
+};
+
+cpp_quote("#define CLSID_IENSCTree IID_INSCTree")
+cpp_quote("#endif")
+
+cpp_quote("#ifndef _LPNSCWINEVENTHANDLER_DEFINED")
+cpp_quote("#define _LPNSCWINEVENTHANDLER_DEFINED")
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation, 1995-2009.
+//
+//  Contents:    INSCWinEventHandler interface definition
+//
+//----------------------------------------------------------------------------
+[
+    object,
+    uuid(EA5F2D61-E008-11CF-99CB-00C04FD64497),
+    pointer_default(unique),
+    local,
+]
+interface INSCWinEventHandler : IUnknown
+{
+    HRESULT OnNSCWinEvent(
+        [in, unique] HWND hwnd,
+        [in] UINT dwMsg,
+        [in] WPARAM wParam,
+        [in] LPARAM lParam,
+        [out] LRESULT* plres);
+
+    HRESULT IsNSCWindowOwner([in] HWND hwnd);
+};
+cpp_quote("#endif")
+
+cpp_quote("#ifndef _LPSHELLFOLDERVIEWTYPE_DEFINED")
+cpp_quote("#define _LPSHELLFOLDERVIEWTYPE_DEFINED")
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation, 1995-2009.
+//
+//  Contents:    IShellFolderViewType interface definition
+//
+//----------------------------------------------------------------------------
+[
+    object,
+    uuid("49422C1E-1C03-11d2-8DAB-0000F87A556C"),
+    pointer_default(unique),
+    local,
+]
+interface IShellFolderViewType : IUnknown
+{
+    HRESULT EnumViews([in] ULONG grfFlags, [out] IEnumIDList **ppenum);
+    HRESULT GetDefaultViewName([in] DWORD dwFlags, [out, annotation("_Out_")] LPWSTR *ppwszName);
+    HRESULT GetViewTypeProperties([in] PCUITEMID_CHILD pidl, [out] DWORD *pdwFlags);
+    HRESULT TranslateViewPidl([in] PCUIDLIST_RELATIVE pidl, [in] PCUIDLIST_RELATIVE pidlView, [out] PIDLIST_RELATIVE *ppidlOut);
+};
+cpp_quote("#endif")
+
+cpp_quote("#ifndef _LPSHELLFOLDERSEARCHABLE_DEFINED")
+cpp_quote("#define _LPSHELLFOLDERSEARCHABLE_DEFINED")
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation, 1995-2009.
+//
+//  Contents:    IShellFolderSearchable interface definition
+//
+//----------------------------------------------------------------------------
+[
+    object,
+    uuid("4E1AE66C-204B-11d2-8DB3-0000F87A556C"),
+    pointer_default(unique),
+    local,
+]
+interface IShellFolderSearchable : IUnknown
+{
+    HRESULT FindString([in] LPCWSTR pwszTarget, [in, out, unique] DWORD *pdwFlags,
+                       [in] IUnknown *punkOnAsyncSearch, [out] LPITEMIDLIST *ppidlOut);
+
+    HRESULT CancelAsyncSearch([in] LPCITEMIDLIST pidlSearch, [in, out, unique] DWORD *pdwFlags);
+    HRESULT InvalidateSearch([in] LPCITEMIDLIST pidlSearch, [in, out, unique] DWORD *pdwFlags);
+};
+cpp_quote("#endif")

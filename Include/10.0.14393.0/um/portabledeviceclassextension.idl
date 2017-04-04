@@ -1,0 +1,74 @@
+//-----------------------------------------------------------------------------
+//
+// @module      PortableDeviceClassExtension.idl
+//
+// @abstract    This file contains help interface desc for drivers installed under
+//              the Portable Device Class.
+//
+// @copyright   (C) COPYRIGHT MICROSOFT CORPORATION
+//
+//-----------------------------------------------------------------------------
+
+cpp_quote("#include <winapifamily.h>")
+
+#pragma region Desktop Family
+cpp_quote("#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)")
+
+cpp_quote("#if (_WIN32_WINNT >= 0x0501) // XP and later")
+
+import "oaidl.idl";
+import "ocidl.idl";
+import "propidl.idl";
+import "wtypes.idl";
+
+import "PortableDeviceTypes.idl";
+
+///////////////////////////////////////////////////////////
+// IWpdSerializer
+//---------------------------------------------------------
+//---------------------------------------------------------
+//
+[
+   object,
+   uuid(bc08386a-9952-40cd-ba50-9541d64a4b4e),
+   helpstring("IPortableDeviceDriverLibrary Interface"),
+   pointer_default(unique)
+]
+interface IPortableDeviceClassExtension : IUnknown
+{
+   HRESULT Initialize(IUnknown* pWdfDeviceUnknown, IPortableDeviceValues* pOptions);
+   HRESULT Uninitialize();
+   HRESULT ProcessLibraryMessage(IPortableDeviceValues* pParams, IPortableDeviceValues* pResults);
+};
+
+///////////////////////////////////////////////////////////
+// PortableDeviceClassExtension
+//---------------------------------------------------------
+//---------------------------------------------------------
+//
+[
+   uuid(c0ffa723-ff4c-4983-8565-66d78e73036e),
+   version(1.0),
+   helpstring("PortableDeviceClassExtension 1.0 Type Library")
+]
+library PortableDeviceClassExtension
+{
+   importlib("stdole32.tlb");
+   importlib("stdole2.tlb");
+
+   [
+      uuid(4cadfae1-5512-456a-9d65-5b5e7e9ca9a3),
+      helpstring("PortableDeviceClassExtension Class")
+   ]
+   coclass PortableDeviceClassExtension
+   {
+      [default] interface IPortableDeviceClassExtension;
+   };
+
+};
+
+cpp_quote("#endif // (_WIN32_WINNT >= 0x0501)")
+
+cpp_quote("#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */")
+#pragma endregion
+

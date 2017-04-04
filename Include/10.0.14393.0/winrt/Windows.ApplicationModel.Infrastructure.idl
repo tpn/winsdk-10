@@ -1,0 +1,28 @@
+//  Copyright (c) Microsoft Corporation. All rights reserved.
+//
+
+#include "sdkddkver.h"
+
+import "oaidl.idl";
+import "inspectable.idl";
+import "activation.idl";
+import "Windows.Foundation.idl";
+import "Windows.ApplicationModel.Core.idl";
+import "Windows.UI.Core.CoreWindowFactory.idl";
+
+namespace Windows.ApplicationModel.Infrastructure {
+
+#pragma region Initialize With Window Factory
+
+    [version(NTDDI_WIN8)]
+    [object, uuid(5AF48779-F000-493C-99F1-982FBBF305E0)]
+    interface ISetWindowWithWindowFactory : IInspectable
+    {
+        HRESULT SetWindow([in] Windows.UI.Core.ICoreWindowFactory* windowFactory,
+                          [out, retval] Windows.UI.Core.CoreWindow** window);
+    }
+
+#pragma endregion Initialize With Window Factory
+
+}
+

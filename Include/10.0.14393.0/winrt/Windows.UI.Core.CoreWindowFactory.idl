@@ -1,0 +1,31 @@
+//  Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//  WindowsRuntimeAPISet
+
+#include <sdkddkver.h>
+
+import "oaidl.idl";
+import "Inspectable.idl";
+import "windows.ui.core.idl";
+
+namespace Windows.UI.Core
+{
+    [version(NTDDI_WIN8), uuid(CD292360-2763-4085-8A9F-74B224A29175)]
+    interface ICoreWindowFactory : IInspectable
+    {
+        HRESULT CreateCoreWindow([in] HSTRING windowTitle, [out, retval] Windows.UI.Core.CoreWindow **window);
+        [propget] HRESULT WindowReuseAllowed([out, retval] boolean *value);
+    }
+
+    [version(NTDDI_WIN8)]
+    runtimeclass ImmersiveCoreWindowFactory
+    {
+        [default] interface ICoreWindowFactory;
+    }
+
+    [version(NTDDI_WIN8)]
+    runtimeclass HostedCoreWindowFactory
+    {
+        [default] interface ICoreWindowFactory;
+    }
+}

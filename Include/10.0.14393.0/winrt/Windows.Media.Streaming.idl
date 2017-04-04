@@ -1,0 +1,74 @@
+//  Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//  WindowsRuntimeAPISet
+
+//*@@@+++@@@@******************************************************************
+//
+// Microsoft Windows DLNA APIs
+//
+//*@@@---@@@@******************************************************************
+//
+
+import "windows.foundation.idl";
+import "Windows.Storage.Streams.Idl";
+import "Windows.Storage.Idl";
+import "Windows.Media.Streaming.Devices.idl";
+#include <sdkddkver.h>
+
+//////////////////////////////////////////////////////////////////////
+//
+// This file contains the public API surface for the device controller. This API is not
+// projected and is available only in native C++.
+//
+//////////////////////////////////////////////////////////////////////
+
+namespace Windows.Media.Streaming
+{
+
+    //////////////////////////////////////////////////////////////////////
+    //
+    // Interfaces/Classes
+    //
+    //////////////////////////////////////////////////////////////////////            
+
+    //////////////////////////////////////////////////////////////////////
+    interface IStreamSelectorStatics;
+
+    [
+        version( NTDDI_WIN8 ),
+        static( IStreamSelectorStatics, NTDDI_WIN8 ),
+        threading(mta)
+    ]
+    runtimeclass StreamSelector
+    {
+    }
+
+    [
+        version( NTDDI_WIN8 ),
+        uuid(8a4cd4a1-ed85-4e0f-bd68-8a6862e4636d)
+    ]
+    interface IStreamSelectorStatics : IInspectable
+    {
+        HRESULT SelectBestStreamAsync(
+            [ in ] Windows.Storage.StorageFile* storageFile, 
+            [ in ] Windows.Foundation.Collections.IPropertySet* selectorProperties,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStreamWithContentType*>** value );
+
+        HRESULT GetStreamPropertiesAsync(
+            [ in ] Windows.Storage.StorageFile* storageFile, 
+            [ in ] Windows.Foundation.Collections.IPropertySet* selectorProperties,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<Windows.Foundation.Collections.IVectorView< Windows.Foundation.Collections.IPropertySet *> *>** value );
+
+        HRESULT SelectBestStreamFromStreamAsync(
+            [ in ] Windows.Storage.Streams.IRandomAccessStream* stream, 
+            [ in ] Windows.Foundation.Collections.IPropertySet* selectorProperties,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStreamWithContentType*>** value );
+
+        HRESULT GetStreamPropertiesFromStreamAsync(
+            [ in ] Windows.Storage.Streams.IRandomAccessStream* stream, 
+            [ in ] Windows.Foundation.Collections.IPropertySet* selectorProperties,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<Windows.Foundation.Collections.IVectorView< Windows.Foundation.Collections.IPropertySet *> *>** value );
+    }
+    
+} // end of Windows.Media.Streaming namespace
+

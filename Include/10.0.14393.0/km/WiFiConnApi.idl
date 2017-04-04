@@ -1,0 +1,1130 @@
+// ==++==
+// 
+//   Copyright (c) Microsoft Corporation.  All rights reserved.
+// 
+// ==--==
+
+cpp_quote("//+-------------------------------------------------------------------------")
+cpp_quote("//")
+cpp_quote("//  Microsoft Windows")
+cpp_quote("//  Copyright (c) Microsoft Corporation. All rights reserved.")
+cpp_quote("//")
+cpp_quote("//--------------------------------------------------------------------------")
+
+import "oaidl.idl";
+import "ocidl.idl";
+import "wlantypes.h";
+
+midl_pragma warning( disable: 2456 ) 
+    
+#define CNLEN       15     // Computer name length
+#define UNLEN       256    // Maximum user name length
+#define PWLEN       256    // Maximum password length   
+#define DNLEN       CNLEN  // Maximum domain name length
+#define IPLEN       15     // Maximum ip address length
+#define CERTHASHLEN 20     // Maximum length of cert hash
+#define IPV6LEN     65     // Maximum ipv6 address length
+    
+// Used for indicating all pending handles
+cpp_quote("#define WiFiRequestHandleAll 0xFFFFFFFF")
+// Used to reset the default timer to bring power back on. Must be used with WiFiPowerBackOnTimer. 
+cpp_quote("#define WiFiPowerBackOnDefaultTimer 0")
+
+interface IWiFiHandle;
+interface IWiFiAdapterManager;
+interface IWiFiNetwork;
+interface IWiFiNetworkList;
+interface IWiFiBssList;
+interface IWiFiCertificate;
+interface IWiFiCertificatePrivate;
+interface IWiFiCertificateList;
+interface IWiFiSupportedEapMethodList;
+interface IWiFiEventHandler;
+interface IWiFiAutoConnectList;
+interface IWiFiSocialNetwork;
+interface IWiFiSocialNetworkList;
+interface IWiFiAddr6List;
+
+interface IWiFiUiRequestDetailsServer;
+interface IWiFiUiRequestDetailsCertificates;
+
+typedef enum WiFiPowerState 
+{ 
+    WiFiPowerOff      = 0, 
+    WiFiPowerOn       = 1,
+    WiFiPowerGoingOff = 2, 
+    WiFiPowerGoingOn  = 3
+} WiFiPowerState;
+
+typedef enum WiFiPowerFlag
+{
+    WiFiPowerFlagUser      = 0x00000001,
+    WiFiPowerFlagSoftAP    = 0x00000002,
+    WiFiPowerFlagVoip      = 0x00000004,
+    WiFiPowerFlagP2P       = 0x00000008,
+} WiFiPowerFlag;
+
+typedef enum WiFiPowerBackOnOption
+{ 
+    WiFiPowerBackOnNever = 0,
+    WiFiPowerBackOnTimer = 1,
+    WiFiPowerBackOnFavorite= 2
+} WiFiPowerBackOnOption;
+
+typedef enum WiFiPromptingState 
+{ 
+    WiFiPromptingOff = 0, 
+    WiFiPromptingOn  = 1
+} WiFiPromptingState;
+
+typedef enum WiFiScanMode 
+{ 
+    WiFiPassiveScan = 0, 
+    WiFiActiveScan  = 1
+} WiFiScanMode;
+
+typedef enum WiFiConnectionState
+{
+    WiFiDisconnected            = 0,
+    WiFiConnecting              = 1,
+    WiFiWaitingForIp            = 2,
+    WiFiExtAuth                 = 3,
+    WiFiHijacked                = 4,
+    WiFiConnected               = 5,
+    WiFiDisconnecting           = 6,
+    WiFiDisconnectingHijacked   = 7,
+    WiFiDisconnectingNoInternet = 8
+} WiFiConnectionState;
+
+typedef enum WiFiCredentialType
+{
+    WiFiNoCreds         = 0,
+    WiFiPSKWPA          = 1,
+    WiFiPSKWEP          = 2,
+    WiFiOneX            = 3,
+    WiFiIHV             = 4,
+    WiFiUnknownCreds    = 5
+} WiFiCredentialType;
+
+typedef enum WiFiSecurityType
+{
+    WiFiSecurityOpen           = 0,
+    WiFiSecurityWEP            = 1,
+    WiFiSecurityWPA            = 2,
+    WiFiSecurityWPA2           = 3,
+    WiFiSecurityWPAEnterprise  = 4,
+    WiFiSecurityWPA2Enterprise = 5,
+    WiFiSecurityIHV            = 6,
+    WiFiSecurityUnknown        = 7
+} WiFiSecurityType;
+
+typedef enum WiFiConnectFailureReason
+{
+    WiFiConnectNoError              = 0,
+    WiFiConnectGeneralFailure       = 1,
+    WiFiConnectAuthenticationFailed = 2,
+    WiFiConnectInvalidIPAddress     = 3
+} WiFiConnectFailureReason;
+
+typedef enum WiFiConfiguredState
+{
+    WiFiNotConfigured        = 0,
+    WiFiInvalidConfiguration = 1,
+    WiFiConfigured           = 2
+} WiFiConfiguredState;
+
+typedef enum WiFiCredentialRequestReason
+{
+    WiFiNoCredentials,
+    WiFiCredentialsChanged,
+    WiFiCredentialsFailed,
+    WiFiEAPError,
+    WiFiRetry
+} WiFiCredentialRequestReason;
+
+typedef enum WiFiCredentialRequestFlag
+{
+    WiFiRequestPassword          = 0x80,
+    WiFiRequestUsernamePassword  = 0x40,
+    WiFiRequestCertificate       = 0x20,
+    WiFiRequestCertificateTls    = 0x10,
+    WiFiRequestAcceptCertificate = 0x08,
+    WiFiRequestSim               = 0x04,
+    WiFiRequestCancel            = 0x01
+} WiFiCredentialRequestFlag;
+
+typedef enum WiFiResponseAction
+{
+    WiFiResponseAccept = 0,
+    WiFiResponseDeny   = 1
+} WiFiResponseAction;
+
+typedef enum WiFiEapFlags
+{
+    WiFiEapFlagForceServerValidation = 0x00000001,
+} WiFiEapFlags;
+
+// Supported EAP Method Types
+typedef enum WiFiEapMethod
+{
+    WiFiEapMethodNone         = 0,
+
+    // Legacy
+    WiFiEapMethodTLS          = 13,
+    WiFiEapMethodPeapMSChapV2 = 25,
+
+    // New (Author 311)
+    WiFiEapMethodTTLS_PAP         = 21,
+    WiFiEapMethodTTLS_CHAP        = 21 | 0x0100,
+    WiFiEapMethodTTLS_MSCHAP      = 21 | 0x0200,
+    WiFiEapMethodTTLS_MSCHAPV2    = 21 | 0x0400,
+    WiFiEapMethodTTLS_EAPMSCHAPV2 = 21 | 0x0800,
+    WiFiEapMethodTTLS_EAPTLS      = 21 | 0x1000,
+
+    WiFiEapMethodSIM          = 18,
+    WiFiEapMethodAKA          = 23,
+    WiFiEapMethodAKA_P        = 50
+} WiFiEapMethod;
+
+typedef enum WiFiEapCredentialType
+{
+    WiFiEapCredentialSim,
+    WiFiEapCredentialCertificate,
+    WiFiEapCredentialUser
+} WiFiEapCredentialType;
+
+typedef enum WiFiCertStore
+{
+    RootCertStore,
+    MyCertStore,
+    CACertStore
+} WiFiCertStore;
+
+typedef enum WiFiPhyType 
+{
+    WiFiPhyType_unknown    = 0,
+    WiFiPhyType_any        = WiFiPhyType_unknown,
+    WiFiPhyType_fhss       = 1,
+    WiFiPhyType_dsss       = 2,
+    WiFiPhyType_irbaseband = 3,
+    WiFiPhyType_ofdm       = 4,
+    WiFiPhyType_hrdsss     = 5,
+    WiFiPhyType_erp        = 6,
+    WiFiPhyType_ht         = 7,
+    WiFiPhyType_IHV_start  = 0x80000000,
+    WiFiPhyType_IHV_end    = 0xffffffff
+} WiFiPhyType;
+
+// Different types of autoconnect networks - matches WIFI_PROFILE_TYPE in wifiprofilemetadata.h
+typedef enum WiFiAutoConnectNetworkType
+{
+    WiFiAutoConnectTypeUserConfigured,
+    WiFiAutoConnectTypeHotspotOffload,
+    WiFiAutoConnectTypeFriend,
+    WiFiAutoConnectTypePublicOpen,
+    WiFiAutoConnectTypePublicCaptivePortal,
+    WiFiAutoConnectTypeUnknown,
+    WiFiAutoConnectTypeNotAutoConnectable,
+    WiFiAutoConnectTypeRoamed,
+    WiFiAutoConnectTypeProvisioned,
+    WiFiAutoConnectTypePaid,
+    WiFiAutoConnectTypeHotspotProvisioned,
+    WiFiAutoConnectTypeHotspot2
+} WiFiAutoConnectNetworkType;
+
+// State of AutoConnect network - matches WIFI_AUTOCONNECT_NETWORK_STATE in wifiuserrpctypes.h
+typedef enum WiFiAutoConnectNetworkState
+{
+    WiFiNetworkStateActive,
+    WiFiNetworkStateMetered,
+    WiFiNetworkStateTemporarilyBlocked,
+    WiFiNetworkStateBlocked
+} WiFiAutoConnectNetworkState;
+
+// Reason for AutoConnect network backoff - matches WIFI_AUTOCONNECT_BACKOFF_REASON in wifiuserrpctypes.idl
+typedef enum WiFiAutoConnectBackoffReason
+{
+    WiFiAutoConnectBackoffReasonNone,
+    WiFiAutoConnectBackoffReasonBelowMinScore,
+    WiFiAutoConnectBackoffReasonBelowLinkQuality,
+    WiFiAutoConnectBackoffReasonNotStationary,
+    WiFiAutoConnectBackoffReasonStackDisconnected,
+    WiFiAutoConnectBackoffReason80211Failures,
+    WiFiAutoConnectBackoffReasonNoIPAddress,
+    WiFiAutoConnectBackoffReasonProbeFailure,
+    WiFiAutoConnectBackoffReasonHijacked,
+    WiFiAutoConnectBackoffReasonUserAction,
+    WiFiAutoConnectBackoffReasonUserDisabled,
+    WiFiAutoConnectBackoffReasonNoCredentials,
+    WiFiAutoConnectBackoffReasonOther,
+    WiFiAutoConnectBackoffReasonNoProxyCredentials
+} WiFiAutoConnectBackoffReason;
+
+// Sharing with Friends Opt in States - matches WIFI_EXCHANGE_OPT_IN_STATE in wifiuserrpctypes.h
+typedef enum WiFiExchangeOptInState
+{
+    WiFiExchangeOptionUnknown,
+    WiFiExchangeOptedIn,
+    WiFiExchangeOptedOut,
+    WiFiExchangeOptedInDisabled,
+    WiFiExchangeOptedOutDisabled,
+} WiFiExchangeOptInState;
+
+typedef enum CaptivePortalSettingType
+{ 
+    CaptivePortalSettingPhone = 0,
+    CaptivePortalSettingName = 1,
+    CaptivePortalSettingEmail = 2
+} CaptivePortalSettingType;
+
+typedef enum CaptivePortalSettingState
+{ 
+    CaptivePortalSettingAlwaysAsk = 0,
+    CaptivePortalSettingOptedOut = 1,
+    CaptivePortalSettingOptedIn = 2
+} CaptivePortalSettingState;
+
+// Sharing with Friends wifi network exchangeability - matches WIFI_NETWORK_EXCHANGE_STATE in wifiuserrpctypes.h
+typedef enum WiFiNetworkExchangeState
+{
+    WiFiNetworkUnexchangeable,
+    WiFiNetworkShared,
+    WiFiNetworkNotShared,
+} WiFiNetworkExchangeState;
+
+typedef enum WiFiNetworkFavoriteState
+{
+    WiFiNetworkNotFavorite,
+    WiFiNetworkFavorite
+} WiFiNetworkFavoriteState;
+
+typedef enum WiFiActionRequiredFlag
+{
+    WiFiActionRequiredNoActionRequired  = 0x00000000,
+    WiFiActionRequiredCredentials       = 0x00001000,
+    WiFiActionRequiredHijacked          = 0x00002000,
+    WiFiActionRequiredCPDetailsName     = 0x00004000,
+    WiFiActionRequiredCPDetailsPhone    = 0x00008000,
+    WiFiActionRequiredCPDetailsEmail    = 0x00010000,
+    WiFiActionRequiredAcceptCert        = 0x00020000,
+    WiFiActionRequiredPossibleConnect   = 0x00040000,
+    WiFiActionRequiredProxyCredentials  = 0x00080000
+} WiFiActionRequiredFlag;
+
+typedef enum WiFiRoamingState
+{
+    WiFiRoamingStarted,
+    WiFiRoamingComplete
+} WiFiRoamingState;
+
+// matches WIFI_AUTOCONNECT_OPTIN_STATE in wifiuserrpctypes
+typedef enum WiFiAutoConnectOptInState
+{
+    WiFiAutoConnectOptedOut                = 0x00000000,
+    WiFiAutoConnectEnabled                 = 0x00000001,
+    WiFiAutoConnectCaptivePortalEnabled    = 0x00000002,
+    WiFiAutoConnectCredExchangeEnabled     = 0x00000004,
+    WiFiAutoConnectNotAllowed              = 0x00000008
+} WiFiAutoConnectOptInState;
+
+// matches WIFI_PAID_AUTOCONNECT_OPTIN_STATE in wificonnrpctypes
+typedef enum WiFiPaidAutoConnectOptInState
+{
+    WiFiPaidAutoConnectOptedOut   = 0x00000000,
+    WiFiPaidAutoConnectEnabled    = 0x00000001,
+    WiFiPaidAutoConnectNotAllowed = 0x00000002
+} WiFiPaidAutoConnectOptInState;
+
+typedef enum WiFiNetworkListSortOption
+{
+    WiFiSortOptionNone,
+    WiFiSortOptionMostRecentlyUsed
+} WiFiNetworkListSortOption;
+
+// Designed to match _DOT11_MAC_RANDOMIZATION_STATUS in wlanhlp
+typedef enum WiFiRandomizationStatus {
+    WiFiRandomizationStatusNotAvailable = 1,
+    WiFiRandomizationStatusBlockedByAdmin = 2,
+    WiFiRandomizationStatusDisabled = 3,
+    WiFiRandomizationStatusEnabled = 4
+} WiFiRandomizationStatus;
+
+// Designed to match WiFiProfileRandomizationMode in WiFiProfile.h
+typedef enum WiFiProfileRandomizationMode {
+    WiFiProfileRandomizationModeOn = 0,
+    WiFiProfileRandomizationModeOff = 1,
+    WiFiProfileRandomizationModeDaily = 2
+} WiFiProfileRandomizationMode;
+
+// AutoConnect information - matches WIFI_AUTOCONNECT_INFO in wifiuserrpctypes.h
+typedef struct WiFiAutoConnectInfo
+{
+    WiFiAutoConnectNetworkType      networkType;
+    WiFiAutoConnectNetworkState     networkState;
+    WiFiAutoConnectBackoffReason    backoffReason;
+    FILETIME                        ftNextConnectionTime;
+    DWORD                           dwNetworkQuality;
+    FLOAT                           fTileManagerScore;
+} WiFiAutoConnectInfo;
+
+typedef enum WiFiProxyMode {
+    WiFiProxyManualConfig = 0,
+    WiFiProxyScript = 1,
+    WiFiProxyAutomatic = 2
+} WiFiProxyMode;
+
+typedef struct WiFiProxyInfo
+{    
+    WiFiProxyMode Mode;
+
+    WCHAR pszServer[256];
+    WCHAR pszUsername[128];
+    WCHAR pszPassword[128];    
+    WORD  Port;
+    WCHAR pszBypass[256];
+
+    WCHAR pszScript[256];
+} WiFiProxyInfo;
+
+typedef struct WiFiCertificateHash
+{
+    BYTE pbHash[20];
+    DWORD cbHash;   
+} WiFiCertificateHash;
+
+typedef struct WiFiCredentialRequest
+{
+    WiFiCredentialRequestFlag type;
+    WCHAR szDomainUsername[256];  
+    WCHAR szPassword[256];  
+    WiFiCertificateHash certificateHash;
+    WiFiResponseAction action; 
+} WiFiCredentialRequest;
+
+typedef struct WiFiUsername
+{
+    WCHAR szUsername[UNLEN + 1];
+} WiFiUsername;
+
+typedef struct WiFiUrl
+{
+    WCHAR szUrl[260];
+} WiFiUrl;
+
+typedef UCHAR WiFiMacAddress[6];
+
+typedef struct WiFiAdapterInfo
+{
+    WCHAR szIpAddress[IPLEN + 1];
+    WCHAR szSubnetMask[IPLEN + 1];
+    WCHAR szDefaultGateway[IPLEN + 1];
+    WCHAR szDnsServerAddress[IPLEN + 1];
+    WCHAR szDnsSuffix[UNLEN];
+    WCHAR szMacAddress[18];
+    WiFiMacAddress macAddress;
+} WiFiAdapterInfo;
+
+typedef struct WiFiAdapterProperties
+{
+    WCHAR szIpAddress[IPLEN + 1];
+    WCHAR szSubnetMask[IPLEN + 1];
+    WCHAR szDefaultGateway[IPLEN + 1];
+    WCHAR szDnsServerAddress[IPLEN + 1];
+    WCHAR szDnsSuffix[UNLEN];
+    DWORD dwDHCPEnabled;
+
+    BOOL fIpAddressChanged;
+    BOOL fSubnetMaskChanged;
+    BOOL fDefaultGatewayChanged;
+    BOOL fDnsServerAddressChanged;
+    BOOL fDnsSuffixAddressChanged;
+    BOOL fDHCPEnabledChanged;
+} WiFiAdapterProperties;
+
+typedef struct WiFiBssEntry
+{
+    DOT11_SSID        dot11Ssid;
+    ULONG             uPhyId;
+    WiFiMacAddress    macAddress;
+    DOT11_BSS_TYPE    dot11BssType;
+    WiFiPhyType       wifiBssPhyType;
+    LONG              lRssi;
+    ULONG             uLinkQuality;
+    BOOLEAN           bInRegDomain;
+    USHORT            usBeaconPeriod;
+    ULONGLONG         ullTimestamp;
+    ULONGLONG         ullHostTimestamp;
+    USHORT            usCapabilityInformation;
+    ULONG             ulChCenterFrequency;
+} WiFiBssEntry;
+
+typedef struct WiFiAutoConnectEntry
+{
+    DOT11_SSID                  dot11Ssid;
+    DOT11_AUTH_ALGORITHM        authAlgo;
+    DOT11_CIPHER_ALGORITHM      cipherAlgo;
+    DWORD                       dwNumberOfBssids;
+    DWORD                       dwLinkQuality;
+    DWORD                       dwPluginPriority;
+    DWORD                       dwTMFlags;
+    FLOAT                       fTMScore;
+    DWORD                       dwWeight;
+    USHORT                      usCPInstructionsLength;
+    USHORT                      usCredentialsLength;
+    BOOLEAN                     bAutoConnect;
+    WiFiAutoConnectInfo         AutoConnectInfo;
+} WiFiAutoConnectEntry;
+
+typedef FLOAT   WiFiAutoConnectScore;
+
+typedef struct WiFiHotspotStatus
+{
+    WCHAR pluginName[64];
+    WCHAR statusText[256];
+} WiFiHotspotStatus;
+
+// IPv6 Internet address (RFC 2553)
+// This is an 'on-wire' format structure.
+//
+typedef struct WiFiAddr6 {
+    UCHAR       Byte[16];
+} WiFiAddr6;
+
+// String representation of IPv6 Address, including prefix length
+typedef struct WiFiAddr6Str {
+    WCHAR addr[IPV6LEN];
+} WiFiAddr6Str;
+
+typedef struct WiFiEapConfig
+{
+    WiFiEapMethod       methodType;
+    
+    BOOL                bForceAlwaysPrompt;
+    BOOL                bValidateServer;
+    BOOL                bUseCustomRealm;
+
+    WiFiCertificateHash certServerRootCA;
+    WCHAR               szCustomRealm[256];
+} WiFiEapConfig;
+
+typedef struct WiFiSupportedEapMethod
+{
+    WiFiEapMethod           methodType;
+    WiFiEapCredentialType   credentialType;
+    UINT                    stringID;
+    DWORD                   dwFlags;
+} WiFiSupportedEapMethod;
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4600-8894-6D6F0E5EDDCD)]
+interface IWiFiHandle : IUnknown
+{
+    [helpstring("Registers a WiFi event handler")]
+    HRESULT RegisterEventHandler([in] IWiFiEventHandler *handler);
+    [helpstring("Unregisters the currently registered event handler")]
+    HRESULT UnregisterEventHandler();
+    [helpstring("Gets the current event handler registration state")]
+    HRESULT IsRegistered([out, retval] BOOL* bIsRegistered);
+    
+    [helpstring("Starts a general scan. Will fail if WiFi is off.")]
+    HRESULT StartScan();
+    [helpstring("Starts a general scan. Depending on the flag, it will turn on WiFi if currently off")]
+    HRESULT StartScanEx([in] BOOL ensureWiFiOn);
+    [helpstring("Starts a hidden network scan to search for the SSID passed in. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT ScanForHidden([in] BSTR szSSID);
+
+    [helpstring("Gets connection state from the service.")]
+    HRESULT GetConnectionState([out, retval] WiFiConnectionState* connectionState);
+    [helpstring("Gets connection state from the service. If the network is populated in the disconnected state, it indicates the network previously just failed because credentials were never supplied and can be treated as an action required state")]
+    HRESULT GetConnectionStateEx([out] WiFiConnectionState* connectionState, [unique] IWiFiNetwork** ppWiFiNetwork);
+    [helpstring("Queries the service for a list of the supported eap types")]
+    HRESULT GetSupportedEapList([out, retval] IWiFiSupportedEapMethodList** pWiFiSupportedEapMethodList);
+    [helpstring("Stop connecting from the current User connection. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT StopConnecting();
+    [helpstring("Stop connecting to the current network in hijacked state. Requires ID_CAP_WIFI_BROWSER")]
+    HRESULT StopHijackedConnection();
+    [helpstring("Marks the current network in hijacked state as connected. Requires ID_CAP_WIFI_BROWSER")]
+    HRESULT SkipHijackedState();
+
+    [helpstring("Gets the details for the given UI request. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT GetUIRequestDetails([in] DWORD requestHandle, [out, retval] IUnknown** ppDetails);
+    [helpstring("Sends the requested credentials. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SendRequestedCredentials([in] DWORD requestHandle, [in] WiFiCredentialRequest* creds);
+
+    [helpstring("Attempts to set the 'Always send UI requests' flag")]
+    HRESULT SetAlwaysSendUIRequests([in] BOOL bEnabled);
+    
+    [helpstring("Gets power state from the service")]
+    HRESULT GetPowerState([out, retval] WiFiPowerState* powerState);
+    [helpstring("Gets power state from the service")]
+    HRESULT GetPowerStateEx([out] WiFiPowerState* powerState, [unique] DWORD* pdwPowerFlags);
+    [helpstring("Sets the power state (WiFiPowerFlagUser). Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SetPowerState([in] WiFiPowerState powerState);
+    [helpstring("Sets the power state. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SetPowerStateEx([in] WiFiPowerState powerState, [in] WiFiPowerFlag powerFlag);
+    [helpstring("Sets the power state (WiFiPowerFlagUser) without waiting for result. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SetPowerStateAsync([in] WiFiPowerState powerState);
+    [helpstring("Sets the power state without waiting for result. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SetPowerStateAsyncEx([in] WiFiPowerState powerState, [in] WiFiPowerFlag powerFlag);
+
+    [helpstring("Gets the current for bringing Wi-Fi back on when the user turns it off. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT GetPowerBackOnOption([out] WiFiPowerBackOnOption* pPowerBackOnOption, [out, retval] DWORD* pdwTimer);
+    [helpstring("Specifies the method for bringing Wi-Fi back on when the user turns it off. dwTimer is in seconds and only used for WiFiPowerBackOnTimer. If dwTimer is 0, default timer will be used. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SetPowerBackOnOption([in] WiFiPowerBackOnOption powerBackOnOption, [in] DWORD dwTimer);
+    
+    [helpstring("Gets prompting state from the service")]
+    HRESULT GetPromptingState([out, retval] WiFiPromptingState* promptingState);
+    [helpstring("Sets the prompting state. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SetPromptingState([in] WiFiPromptingState promptingState);
+    
+    [helpstring("Gets scan mode from the service")]
+    HRESULT GetScanMode([out, retval] WiFiScanMode* scanMode);
+    [helpstring("Sets the scan modee. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT SetScanMode([in] WiFiScanMode scanMode);
+    
+    [helpstring("Gets Hijacked URL string")]
+    HRESULT GetHijackedUrl([out, retval] BSTR* szUrl);
+    
+    [helpstring("Gets available network list from the service")]
+    HRESULT GetAvailableNetworkList([out, retval] IWiFiNetworkList** networkList);
+    [helpstring("Gets network BSS list from the service")]
+    HRESULT GetNetworkBssList(
+        [in] PDOT11_SSID pDot11Ssid,
+        [in] BOOL bSecurityEnabled,
+        [out, retval] IWiFiBssList** ppBssList);
+    [helpstring("Gets network BSS list from the service")]
+    HRESULT GetNetworkBssListEx(
+        [in] PDOT11_SSID pDot11Ssid,
+        [in] BOOL bSecurityEnabled,
+        [in] BOOL bBypassCache,
+        [out, retval] IWiFiBssList** ppBssList);
+    [helpstring("Gets currently connected Bss Entry from the service")]
+    HRESULT GetCurrentBssEntry(
+        [out, retval] WiFiBssEntry* pBssEntry);
+    [helpstring("Gets preferred network list from the service")]
+    HRESULT GetPreferredNetworkList([in] BOOL includeHotspotNetworks, [out, retval] IWiFiNetworkList** networkList);
+    [helpstring("Gets preferred network list from the service")]
+    HRESULT GetPreferredNetworkListEx([in] BOOL includeHotspotNetworks, [in] WiFiNetworkListSortOption option, [out, retval] IWiFiNetworkList** networkList);
+
+    [helpstring("Gets the social network list from the registry")]
+    HRESULT GetSocialNetworkList([out, retval] IWiFiSocialNetworkList** ppszSocialNetworkList);
+    [helpstring("Gets the opt in state for Sharing with Friends")]
+    HRESULT GetExchangeOptInState([out, retval] WiFiExchangeOptInState* pOptInState);
+    [helpstring("Sets the opt in state for Sharing with Friends")]
+    HRESULT SetExchangeOptInState([in] WiFiExchangeOptInState optInState);
+    [helpstring("Sends shared networks to DCP")]
+    HRESULT SendSharedNetworks();
+    [helpstring("Gets whether this network is configured as shared or not.")]
+    HRESULT GetProfileSharingState([in] GUID* pInterfaceGuid, [in] BSTR bstrProfileName, [out, retval] WiFiNetworkExchangeState* pSharingState);
+    [helpstring("Sets this network as shared or not. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT SetProfileSharingState([in] GUID* pInterfaceGuid, [in] BSTR bstrProfileName, [in] WiFiNetworkExchangeState sharingState, [in, unique] BSTR inputPassword);
+    [helpstring("If currently connecting, or connected to a network it set the corresponding profile as shared or not.")]
+    HRESULT SetCurrentConnectionSharingState([in] GUID* pInterfaceGuid, [in] PDOT11_SSID pDot11Ssid, [in] WiFiNetworkExchangeState sharingState, [in] BSTR inputPassword);
+    [helpstring("Test Only: Gets the password for a given SSID/BSSID pair from WCS")]
+    HRESULT GetSharedPassword([in] BSTR bstrSsid, [in] BSTR bstrBssid, [out, retval] BSTR *pbstrPassword);
+    [helpstring("Test Only: Gets the ResponseJson from a GetOptInStatus request")]
+    HRESULT GetOptInStatusTestHook([out, retval] BSTR *pbstrResponse);
+
+    [helpstring("Gets if there are any certificates available for the IHV auth extensions")]
+    HRESULT GetCertificatesFound([in] WiFiCertStore wifiCertStore);
+    [helpstring("Gets the list of available certificates to use with the IHV auth extensions")]
+    HRESULT GetAvailableCertificatesList([in] WiFiCertStore wifiCertStore, [out, retval] IWiFiCertificateList** pAdapterProperties);
+    [helpstring("Gets a list of available certificates in the specified store, filtered for TLS auth, if requested")]
+    HRESULT GetAvailableCertificatesListEx([in] WiFiCertStore wifiCertStore, [in] BOOL filterForTlsAuth, [out, retval] IWiFiCertificateList** pAdapterProperties);
+    
+    [helpstring("Gets the hotspot enabled status from the service")]
+    HRESULT GetHotspotStatus([out, retval] BOOL* pbEnabled);
+    [helpstring("Gets the hotspot status string from the service")]
+    HRESULT GetHotspotStatusString([out] WiFiHotspotStatus* pStatus, [out, retval] BOOL* pbUseDefault);
+    [helpstring("Sets the Hotspot enable status")]
+    HRESULT SetHotspotStatus([in] BOOL bEnabled);   
+   
+    [helpstring("Gets an instance of the adapter manager, which allows to set properties on the connection.")]
+    HRESULT GetAdapterManager([out, retval] IWiFiAdapterManager** ppAdapterManager);
+   
+    [helpstring("Retrieves a wlan profile xml with the password decrypted.")]
+    HRESULT GetDecryptedWlanProfile([in] BSTR bstrProfileName, [out, retval] BSTR *pbstrProfileXml);
+
+    [helpstring("Test Only: Sets action required state on the current network.")]
+    HRESULT SetActionRequired([in] WiFiActionRequiredFlag actionRequiredFlag);
+    [helpstring("Test Only: Returns the list of networks acted on by AutoConnect module.")]
+    HRESULT GetAutoConnectNetworksList([out, retval] IWiFiAutoConnectList** ppAutoConnectList);
+    [helpstring("Test Only: Forces low power state.")]
+    HRESULT ForceLowPowerState([in] BOOL bIsLowPower);
+
+    [helpstring("Gets the autoconnect enabled status")]
+    HRESULT GetAutoConnectStatus([out, retval] WiFiAutoConnectOptInState* pAutoConnectState);
+    [helpstring("Sets the AutoConnect enable status")]
+    HRESULT SetAutoConnectStatus([in] WiFiAutoConnectOptInState autoConnectState);   
+    [helpstring("Gets the paid autoconnect enabled status")]
+    HRESULT GetPaidAutoConnectStatus([out, retval] WiFiPaidAutoConnectOptInState* pAutoConnectState);
+    [helpstring("Sets the paid autoconnect enable status")]
+    HRESULT SetPaidAutoConnectStatus([in] WiFiPaidAutoConnectOptInState autoConnectState);
+    [helpstring("Request TileManager to release memory")]
+    HRESULT FreeTileManagerMemory();
+
+    [helpstring("Function to provision a list of WiFi Hotspot networks. Requires ID_CAP_CSP_WIFI_HOTSPOT.")]
+    HRESULT ProvisionHotspotApp([in, unique] BSTR bstrPackageFamilyName, [in, unique] BSTR bstrPackageFullName, [in] BSTR bstrDoc, [out, retval] BSTR* pbstrResult);
+
+    [helpstring("Gets the current user option for allowing auto connections to captive portals that require personal information")]
+    HRESULT GetProvideCaptivePortalDetailsStatus([out, retval] BOOL* pbEnabled);
+    [helpstring("Sets the current user option for allowing auto connections to captive portals that require personal information")]
+    HRESULT SetProvideCaptivePortalDetailsStatus([in] BOOL bEnabled);   
+    [helpstring("Gets the current opt-in state and value of one of the captive portal personal information settings")]
+    HRESULT GetCaptivePortalSetting([in] CaptivePortalSettingType type, [out] CaptivePortalSettingState* pState, [out, retval] BSTR* pszValue);
+    [helpstring("Sets the current opt-in state and value of one of the captive portal personal information settings")]
+    HRESULT SetCaptivePortalSetting([in] CaptivePortalSettingType type, [in] CaptivePortalSettingState state, [in] BSTR szValue);
+
+    [helpstring("Temporarily disconnects from the current network. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT Disconnect();
+    
+    [helpstring("Gets the limited connectivity state")]
+    HRESULT GetLimtedConnectivityState([out, retval] BOOL* pbIsLimitedConnectivity);   
+    [helpstring("Gets the high dwell network state")]
+    HRESULT GetHighDwellNetworkState([out, retval] BOOL* pbIsHighDwellNetwork);   
+    
+    [helpstring("Sends the turn on hint to the service. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT SendTurnOnHint();   
+    [helpstring("Sends the encourage hint to the service. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT SendEncourageHint([in] GUID guidRuleInstance);   
+
+    [helpstring("Gets media streaming state")]
+    HRESULT GetMediaStreamingState([out] BOOL* pfEnabled);
+
+    [helpstring("Gets MAC Address Randomization status")]
+    HRESULT GetRandomizationStatus([out] WiFiRandomizationStatus* pStatus);
+    [helpstring("Sets MAC Address Randomization status")]
+    HRESULT SetRandomizationStatus([in] WiFiRandomizationStatus status);
+
+    
+    [helpstring("Sends a UI request")]
+    HRESULT SendUIRequest(
+        [in] DWORD dwRequestFlags, 
+        [in] DWORD dwDataSize,
+        [in] BYTE* pbData,
+        [out] WiFiCredentialRequest* pUserCreds
+        );
+
+    [helpstring("Permanently prevents Wi-Fi Network Manager from connecting to this network, until the user manually connects to it. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT BlacklistProfile([in] GUID* pInterfaceGuid, [in] BSTR bstrProfileName);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4601-8894-6D6F0E5EDDCD)]
+interface IWiFiAdapterManager : IUnknown
+{
+    [helpstring("Gets MAC, IP, DNS server addresses and other adapter info. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT GetAdapterInfo([out, retval] WiFiAdapterInfo* pAdapterInfo);
+
+    [helpstring("Gets the custom values for IP, DNS server addresses and other properties, applied to all connections. Set pInterfaceGuid to NULL to use the default Station Mode Interface. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT GetAdapterProperties([in] GUID* pInterfaceGuid, [out, retval] WiFiAdapterProperties* pAdapterProperties);
+
+    [helpstring("Sets static IP, DNS server addresses and other properties, applied to all connections. Set pInterfaceGuid to NULL to use the default Station Mode Interface. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT SetAdapterProperties([in] GUID* pInterfaceGuid, [in] WiFiAdapterProperties* pAdapterProperties);     
+     
+    [helpstring("Add IP address to the adapter. Requires ID_CAP_WIFI_ADMIN capability.")]
+    HRESULT AddAdapterIpAddressEntry([in] GUID *pInterfaceGuid, [in] WiFiAddr6 *pIpv6Address, [in] UINT8 PrefixLength, [in] UINT8 Origin, [in] ULONG ValidLifetime, [in] ULONG PreferredLifetime);
+     
+    [helpstring("Removes adpater's IP address. Requires ID_CAP_WIFI_ADMIN capability.")]
+    HRESULT RemoveAdapterIpAddressEntry([in] GUID *pInterfaceGuid, [in] WiFiAddr6 *pIpv6Address);
+
+    [helpstring("Gets all IPv6 addresses for adapter.")]
+    HRESULT GetAdapterIpAddressEntries([out, retval] IWiFiAddr6List **ppAddr6List);
+
+    [helpstring("Gets Wlan interface GUID.")]
+    HRESULT GetInterfaceGuid([out, retval] GUID *pInterfaceGuid);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4602-8894-6D6F0E5EDDCD)]
+interface IWiFiNetwork : IUnknown
+{
+    [helpstring("Configures the network (without OneX authentication). Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT Configure(
+        [in] BOOL bImmediateAutoConnect, 
+        [in] BOOL markAsHidden);
+
+    [helpstring("Configures the network (without OneX authentication). Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT ConfigureEx(
+        [in] BOOL bImmediateAutoConnect, 
+        [in] BOOL markAsHidden,
+        [in] BOOL markAsManual,
+        [in] BOOL forceUserConfigured);
+
+    [helpstring("Configures the network for OneX authentication. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT ConfigureOneX(
+        [in] WiFiEapConfig* pEapConfig,
+        [in] BOOL bImmediateAutoConnect, 
+        [in] BOOL markAsHidden);
+
+    [helpstring("Configures the network for OneX authentication. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT ConfigureOneXEx(
+        [in] WiFiEapConfig* pEapConfig,
+        [in] BOOL bImmediateAutoConnect, 
+        [in] BOOL markAsHidden,
+        [in] BOOL markAsManual);
+
+    [helpstring("Starts connecting to a configured network. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT StartConnecting(
+        [in] BOOL bDeleteOnFailure, 
+        [unique] WiFiCredentialRequest* pWiFiCredentials);
+
+    [helpstring("Deletes the profile for the network and permanently blacklists the network if it is autoconnect")]
+    HRESULT DeleteConfig([in] BOOL bWaitForResult);
+
+    [helpstring("Deletes the profile for the network")]
+    HRESULT DeleteConfigEx([in] BOOL bWaitForResult, [in] BOOL bBlackListNetwork);
+
+    [helpstring("Gets configured state")]
+    HRESULT GetConfiguredState([out, retval] WiFiConfiguredState* pConfiguredState);
+    [helpstring("Gets connection state")]
+    HRESULT GetConnectionState([out, retval] WiFiConnectionState* pConnState);
+    [helpstring("Gets the configured hidden state")]
+    HRESULT GetHiddenState([out, retval] BOOL* bHidden);
+    [helpstring("Gets if the network was configured through a hotspot plugin")]
+    HRESULT GetHotspotState([out, retval] BOOL* bHotspot);
+
+    [helpstring("Gets the extensible string ID. Used for WiFiExtAuth & WiFiHijacked connection state")]
+    HRESULT GetExtStringID([out, retval] UINT* pStrID);
+    [helpstring("Gets the username of a EAP network")]
+    HRESULT GetUsername([out, retval] BSTR* szCredentials);
+    [helpstring("Gets the configured EAP method")]
+    HRESULT GetEapMethod([out, retval] WiFiEapMethod* pEapMethod);    
+
+    [helpstring("Gets the proxy settings of the network. Returns error if proxy not available")]
+    HRESULT GetProxyDetails([out, retval] WiFiProxyInfo* proxyInfo);
+    [helpstring("Sets the proxy settings of the network")]
+    HRESULT SetProxyDetails([in] WiFiProxyInfo* proxyInfo);
+
+    [helpstring("Gets the security type")]
+    HRESULT GetSecurityType([out, retval] WiFiSecurityType* secType);
+    [helpstring("Gets the security type as saved in the profile")]
+    HRESULT GetProfileSecurityType([out, retval] WiFiSecurityType* secType);
+    [helpstring("Gets the required credentials type")]
+    HRESULT GetCredentialType([out, retval] WiFiCredentialType* credType);
+
+    [helpstring("Gets the preconverted string version of the SSID")]
+    HRESULT GetSzSSID([out, retval] BSTR* szSsid);
+
+    [helpstring("Determines if the following network has the same CM Connection Name")]
+    HRESULT IsCmConnection([in] BSTR szCmConnName);
+
+    [helpstring("Gets the name mask, if available. Otherwise returns an error.")]
+    HRESULT GetNameMask([out, retval] BSTR* nameMask);
+
+    [helpstring("Gets the raw SSID")]
+    HRESULT GetSSID([out, retval] DOT11_SSID* dot11Ssid);
+    [helpstring("Gets the security state")]
+    HRESULT GetSecurityEnabled([out, retval] DWORD* bSecurityEnabled);
+    [helpstring("Gets the authentication algorithm used")]
+    HRESULT GetAuthAlgo([out, retval] DOT11_AUTH_ALGORITHM* dot11AuthAlgo);
+    [helpstring("Gets the cipher algorithm used")]
+    HRESULT GetCipherAlgo([out, retval] DOT11_CIPHER_ALGORITHM* dot11CiphAlgo);
+    [helpstring("Gets the number of Bssids available")]
+    HRESULT GetNumberOfBSSIDs([out, retval] DWORD* dwNumBssid);
+    [helpstring("Gets the raw signal strength")]
+    HRESULT GetSignalStrength([out, retval] DWORD* dwSignalStrength);
+    [helpstring("Gets the running average signal strength")]
+    HRESULT GetSmoothedSignalStrength([out, retval] DWORD* dwSmoothedSignalStrength);
+    [helpstring("Gets the sort flags")]
+    HRESULT GetSortFlags([out, retval] DWORD* dwSortFlags);   
+    [helpstring("Gets the action required state. i.e. Is user action required to complete the connection?")]
+    HRESULT GetActionRequiredFlags([out, retval] WiFiActionRequiredFlag* pdwActionRequiredFlags);
+    [helpstring("Determines if this network was provisioned")]
+    HRESULT IsProvisioned([out, retval] BOOL* bIsProvisioned);
+    [helpstring("Determines if this network has been successfully connected to at least once")]
+    HRESULT HasConnected([out, retval] BOOL* bHasConnected);
+    [helpstring("Gets autoconnect information and score for the network")]
+    HRESULT GetAutoConnectInfo([out, retval] WiFiAutoConnectInfo* pAutoconnectInfo);
+    [helpstring("Gets stored bssids for the network")]
+    HRESULT GetBssidList([out] DWORD *pdwcMacAddresses, [out] WiFiMacAddress** ppMacAddresses);
+
+    [helpstring("Gets whether this network as configured as automatic or manual.")]
+    HRESULT GetAutomaticState([out, retval] BOOL* pbAutomatic);
+    [helpstring("Sets this network as automatic or manual. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT SetAutomaticState([in] BOOL bAutomatic);
+
+    [helpstring("Gets whether this network is configured as shared or not.")]
+    HRESULT GetSharingState([out, retval] WiFiNetworkExchangeState* pShared);
+    [helpstring("Sets this network as shared or not. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT SetSharingState([in] WiFiNetworkExchangeState shared, [in, unique] BSTR inputPassword);
+
+    [helpstring("Triggers the process of requesting local access for a internet access only network. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT RequestLocalAccess();
+    
+    [helpstring("Gets whether this network is configured as favorite or not.")]
+    HRESULT GetFavoriteState([out, retval] WiFiNetworkFavoriteState* pState);
+    [helpstring("Sets this network as favorite or not. Requires ID_CAP_WIFI_ADMIN.")]
+    HRESULT SetFavoriteState([in] WiFiNetworkFavoriteState state);
+
+    [helpstring("Gets the dwell statistics for this network.")]
+    HRESULT GetDwellData([out] FILETIME* pLastConnect, [out] FLOAT* pTotalConnections, [out] FLOAT* pTotalDuration);
+    [helpstring("Sets the dwell statistics for this network.")]
+    HRESULT SetDwellData([in] FILETIME* pLastConnect, [in] FLOAT* pTotalConnections, [in] FLOAT* pTotalDuration);
+
+    [helpstring("Gets the MAC Address randomization mode for this network.")]
+    HRESULT GetProfileRandomizationMode([out] WiFiProfileRandomizationMode* pMode);
+    [helpstring("Sets the MAC Address randomization mode for this network.")]
+    HRESULT SetProfileRandomizationMode([in] WiFiProfileRandomizationMode mode);
+
+    [helpstring("Test Only: Sets bssid for the network")]
+    HRESULT SetBssid([in] WiFiMacAddress bssid);
+
+    [helpstring("Gets the WLAN profile name for this network if configured")]
+    HRESULT GetProfileName([out, retval] BSTR* szProfileName);
+
+    [helpstring("Starts connecting to a configured network. Requires ID_CAP_WIFI_ADMIN")]
+    HRESULT StartConnectingDiscovery(
+        [in] BOOL markAsHidden,
+        [in] BOOL bDeleteOnFailure,
+        [unique] WiFiCredentialRequest* pWiFiCredentials);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4603-8894-6D6F0E5EDDCD)]
+interface IWiFiNetworkList : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] IWiFiNetwork** ppWifiNetwork);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+
+    [helpstring("Checks the list for a network with a matching SSID string")]
+    HRESULT GetBySzSsid([in] BSTR szSsid, [out, retval] IWiFiNetwork** ppWifiNetwork);
+
+    [helpstring("Checks the list for a network with a matching CM Connection Name")]
+    HRESULT GetByCmConnName([in] BSTR szCmConnName, [out, retval] IWiFiNetwork** ppWifiNetwork);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4604-8894-6D6F0E5EDDCD)]
+interface IWiFiBssList : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] WiFiBssEntry* pWifiBssEntry);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4605-8894-6D6F0E5EDDCD)]
+interface IWiFiCertificate : IUnknown
+{
+    [helpstring("Returns true if the system time is between the not before and not after dates")]
+    HRESULT GetExpired([out, retval] BOOL* bIsExpired);
+
+    [helpstring("Returns the system time corresponding to the certificate start of validation date")]
+    HRESULT GetSystemTimeNotBefore([out, retval] SYSTEMTIME* pSystemTimeNotBefore);
+
+    [helpstring("Returns the system time corresponding to the certificate end of validation date")]
+    HRESULT GetSystemTimeNotAfter([out, retval] SYSTEMTIME* pSystemTimeNotAfter);
+
+    [helpstring("Returns the string representing the bytes of the certificate hash")]
+    HRESULT GetByteString([out, retval] BSTR* pszByteString);
+
+    [helpstring("Returns the subject name on the certificate")]
+    HRESULT GetSubjectName([out, retval] BSTR* pszSubjectName);
+
+    [helpstring("Returns the name of the issuer")]
+    HRESULT GetIssuerName([out, retval] BSTR* pszIssuerName);
+
+    [helpstring("Returns the serial number of the certificate")]
+    HRESULT GetSerialNumber([out, retval] BSTR* pszSerialNumber);
+
+    [helpstring("Returns the raw bytes of the hash")]
+    HRESULT GetHash([out, retval] WiFiCertificateHash* pCertificateHash);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4606-8894-6D6F0E5EDDCD)]
+interface IWiFiCertificateList : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] IWiFiCertificate** ppWifiCertificate);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+    
+    [helpstring("Returns the handle to the in memory cert store. Only valid if this is a filtered certificate list. The handle is valid for the lifetime of this IWiFiCertificateList object.")]
+    HRESULT GetCertStoreHandle([out, retval] DWORD* ppCertStoreHandle);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4607-8894-6D6F0E5EDDCD)]
+interface IWiFiSupportedEapMethodList : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] WiFiSupportedEapMethod* pWiFiSupportedEapMethod);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4608-8894-6D6F0E5EDDCD)]
+interface IWiFiEventHandler : IUnknown
+{
+    [helpstring("Fires when the Power State Changes")]
+    HRESULT HandlePowerStateChange([in] WiFiPowerState newPowerState);
+
+    [helpstring("Fires when the Connection State Changes")]
+    HRESULT HandleConnectionStateChange([in] WiFiConnectionState newConnectionState, [in] BSTR szCmConnName);
+    
+    [helpstring("Fires when the Available Network List Changes")]
+    HRESULT HandleAvailableNetworkListChange();
+    
+    [helpstring("Fires when the Preferred Network List Changes")]
+    HRESULT HandlePreferredNetworkListChange();
+    
+    [helpstring("Fires when a User initiated connection completes")]
+    HRESULT HandleConnectionComplete([in] WiFiConnectFailureReason reason, [in] BSTR szCmConnName);
+    
+    [helpstring("Fires when the Credential Request comes")]
+    HRESULT HandleCredentialRequest([in] WiFiCredentialRequestReason reason, [in] WiFiCredentialRequestFlag typeFlags, [in] DWORD requestHandle, [in] BSTR szCmConnName);
+    
+    [helpstring("Fires when the Roaming State Changes")]
+    HRESULT HandleRoamingStateChange([in] WiFiRoamingState state, [in] WiFiMacAddress bssid);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-4609-8894-6D6F0E5EDDCD)]
+interface IWiFiUiRequestDetailsServer : IUnknown
+{
+    [helpstring("Returns the subject name of the server certificate")]
+    HRESULT GetSubjectName([out, retval] BSTR* pszSubjectName);
+
+    [helpstring("Returns the issuer name of the server certificate")]
+    HRESULT GetIssuerName([out, retval] BSTR* pszIssuerName);
+}
+
+[object, oleautomation, uuid(AF7FEAD8-C340-460A-8894-6D6F0E5EDDCD)]
+interface IWiFiUiRequestDetailsCertificates : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] WiFiCertificateHash* pWiFiCertificateHash);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+}
+
+[object, oleautomation, uuid(AF7FEAD8-C340-460B-8894-6D6F0E5EDDCD)]
+interface IWiFiAutoConnectList : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] WiFiAutoConnectEntry* pWifiAutoConnectEntry);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-460C-8894-6D6F0E5EDDCD)]
+interface IWiFiSocialNetwork : IUnknown
+{
+    [helpstring("Gets the localized name")]
+    HRESULT GetName([out, retval] BSTR* socialNetworkName);
+    
+    [helpstring("Gets the unique identifier")]
+    HRESULT GetID([out, retval] BSTR* identifier);
+
+    [helpstring("Gets the opt-in status")]
+    HRESULT GetOptInStatus([out, retval] BOOL* fEnabled);
+
+    [helpstring("Get the disabled in region flag")]
+    HRESULT GetDisabled([out, retval] BOOL* fDisabled);
+
+    [helpstring("Get the token needed flag")]
+    HRESULT GetTokenNeeded([out, retval] BOOL* fTokenNeeded);
+
+    [helpstring("Sets the localized name")]
+    HRESULT SetName([in] BSTR name);
+
+    [helpstring("Sets the opt-in status")]
+    HRESULT SetOptInStatus([in] BOOL fEnabled);
+
+    [helpstring("Sets the opt-in status")]
+    HRESULT SetOptInStatusEx([in] BOOL fEnabled, [in] BSTR szAccessToken, [in] BSTR szMetadata);
+    
+    [helpstring("Gets the URI to use for the request")]
+    HRESULT GetTokenRequestUri([out] BSTR* szMetadata, [out, retval] BSTR* szRequestUri);
+}
+
+[object, oleautomation, uuid(AF7FEAD8-C340-460D-8894-6D6F0E5EDDCD)]
+interface IWiFiSocialNetworkList : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] IWiFiSocialNetwork** ppWifiSocialNetwork);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+
+    [helpstring("Checks the list for a social network with a matching human-readable name")]
+	HRESULT GetByName([in] BSTR name, [out, retval] IWiFiSocialNetwork** ppWifiSocialNetwork);
+
+	[helpstring("Checks the list for a network with a matching identifier")]
+	HRESULT GetByID([in] BSTR identifier, [out, retval] IWiFiSocialNetwork** ppWifiSocialNetwork);
+};
+
+[object, oleautomation, uuid(AF7FEAD8-C340-460E-8894-6D6F0E5EDDCD)]
+interface IWiFiAddr6List : IUnknown
+{
+    [helpstring("Function to return an item in the list")]
+    HRESULT Get([in] DWORD dwIndex, [out, retval] WiFiAddr6Str* pWiFiAddr6Str);
+
+    [helpstring("Returns the size of the list")]
+    HRESULT Size([out, retval] DWORD* pdwSize);
+}
+
+[uuid(AF7FEAD8-C341-4600-8894-6D6F0E5EDDCD), version(1.0)]
+library WiFiConnApi
+{
+    importlib("stdole32.tlb");
+    
+    enum WiFiPowerState;
+    enum WiFiPowerFlag;
+    enum WiFiPromptingState;
+    enum WiFiScanMode;
+    enum WiFiConnectionState;
+    enum WiFiCredentialType;
+    enum WiFiSecurityType;
+    enum WiFiConnectFailureReason;
+    enum WiFiConfiguredState;
+    enum WiFiCredentialRequestReason;
+    enum WiFiCredentialRequestFlag;
+    enum WiFiResponseAction;
+    enum WiFiEapMethod;
+    enum WiFiEapCredentialType;
+    enum WiFiCertStore;
+    enum WiFiPhyType;
+    enum WiFiExchangeOptInState;
+    enum WiFiNetworkExchangeState;
+    enum WiFiNetworkFavoriteState;
+
+    struct WiFiProxyInfo;
+    struct WiFiCertificateHash;
+    struct WiFiCredentialRequest;
+    struct WiFiUsername;
+    struct WiFiUrl;
+    struct WiFiAdapterInfo;
+    struct WiFiAdapterProperties;
+    struct WiFiBssEntry;
+    struct WiFiHotspotStatus;
+    struct WiFiAddr6;
+    struct WiFiEapConfig;
+    struct WiFiSupportedEapMethod;
+    struct WiFiAutoConnectEntry;
+
+    interface IWiFiHandle;
+    interface IWiFiAdapterManager;
+    interface IWiFiNetwork;
+    interface IWiFiNetworkList;
+    interface IWiFiSocialNetwork;
+    interface IWiFiSocialNetworkList;
+    interface IWiFiBssList;
+    interface IWiFiCertificate;
+    interface IWiFiCertificateList;
+    interface IWiFiSupportedEapMethodList;
+    interface IWiFiEventHandler;
+    interface IWiFiUiRequestDetailsServer;
+    interface IWiFiUiRequestDetailsCertificates;
+    interface IWiFiAutoConnectList;
+        
+    [uuid(AF7FEAD8-C345-4600-8894-6D6F0E5EDDCD) ]
+    coclass WiFiHandle
+    {
+        [default] interface IWiFiHandle;
+        interface IWiFiHandle;
+    };
+}
+

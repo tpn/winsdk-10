@@ -1,0 +1,596 @@
+//  Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//  WindowsRuntimeAPISet
+
+//*@@@+++@@@@******************************************************************
+//
+// Microsoft Windows PlayToDevices
+//
+//*@@@---@@@@******************************************************************
+//
+
+import "windows.foundation.idl";
+import "Windows.Storage.Streams.Idl";
+import "Windows.Storage.Idl";
+#include <sdkddkver.h>
+
+//////////////////////////////////////////////////////////////////////
+//
+// This file contains the public API surface for the device controller. This API is not
+// projected and is available only in native C++.
+//
+//////////////////////////////////////////////////////////////////////
+
+namespace Windows.Media.Streaming
+{
+    //////////////////////////////////////////////////////////////////////
+    //
+    // Forward declarations
+    //
+    //////////////////////////////////////////////////////////////////////    
+    interface IBasicDevice;
+    interface IActiveBasicDevice;    
+    interface IDeviceController;    
+    interface IDeviceIcon;
+    interface IActiveBasicDeviceStatics;
+    interface IMediaRenderer;
+    interface IMediaRendererActionInformation;
+    interface IMediaRendererFactory;
+    interface ITransportParameters;
+
+    runtimeclass BasicDevice;    
+    runtimeclass ActiveBasicDevice;        
+    runtimeclass DevicePair;
+    runtimeclass MediaRenderer;
+    runtimeclass CreateMediaRendererOperation;
+
+    //////////////////////////////////////////////////////////////////////
+    //
+    // Enums/Structs
+    //
+    //////////////////////////////////////////////////////////////////////    
+    [ 
+        version( NTDDI_WIN8 ), 
+        flags, v1_enum
+    ]
+    typedef enum DeviceTypes
+    {
+        Unknown                 = 0x0,
+        DigitalMediaRenderer    = 0x1,
+        DigitalMediaServer      = 0x2,
+        DigitalMediaPlayer      = 0x4,
+    } DeviceTypes;
+
+    //////////////////////////////////////////////////////////////////////
+    [ version( NTDDI_WIN8 ), v1_enum ]
+    typedef enum ConnectionStatus
+    {
+        Online = 0,
+        Offline,
+        Sleeping
+    } ConnectionStatus;
+
+    //////////////////////////////////////////////////////////////////////        
+    [ version( NTDDI_WIN8 ), v1_enum ]
+    typedef enum TransportState
+    {
+        Unknown = 0,
+        Stopped,
+        Playing,
+        Transitioning,
+        Paused,
+        Recording,
+        NoMediaPresent,
+        Last
+    } TransportState;
+
+    //////////////////////////////////////////////////////////////////////
+    [ version( NTDDI_WIN8 ), v1_enum ]
+    typedef enum TransportStatus
+    {
+        Unknown = 0,
+        Ok,
+        ErrorOccurred,
+        Last
+    } TransportStatus;
+
+    //////////////////////////////////////////////////////////////////////
+    [ version( NTDDI_WIN8 ) ]
+    typedef struct RenderingParameters
+    {
+        UINT volume;
+        boolean mute;
+    } RenderingParameters;    
+
+    //////////////////////////////////////////////////////////////////////
+    [version(NTDDI_WIN8)]
+    typedef struct PlaySpeed {
+        INT32 Numerator;
+        UINT32 Denominator;
+    } PlaySpeed;
+
+    //////////////////////////////////////////////////////////////////////
+    [ version( NTDDI_WIN8 ) ]
+    typedef struct TransportInformation
+    {
+        TransportState CurrentTransportState;
+        TransportStatus CurrentTransportStatus;
+        PlaySpeed CurrentSpeed;
+    } TransportInformation;    
+
+    //////////////////////////////////////////////////////////////////////
+    [ version( NTDDI_WIN8 ) ]
+    typedef UINT32 TrackId;
+
+    //////////////////////////////////////////////////////////////////////
+    [ version( NTDDI_WIN8 ) ]
+    typedef struct TrackInformation
+    {
+        UINT32 Track;
+        TrackId TrackId;
+        Windows.Foundation.TimeSpan TrackDuration;
+    } TrackInformation;
+
+    //////////////////////////////////////////////////////////////////////
+    [ version( NTDDI_WIN8 ) ]
+    typedef struct PositionInformation
+    {
+        TrackInformation trackInformation;
+        Windows.Foundation.TimeSpan relativeTime;
+    } PositionInformation;
+
+    //////////////////////////////////////////////////////////////////////
+    //
+    // Delegates
+    //
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 ),
+        uuid(a88a7d06-988c-4403-9d8a-015bed140b34)
+    ]
+    delegate HRESULT DeviceControllerFinderHandler(
+        [ in ] IDeviceController*   sender,
+        [ in ] HSTRING              uniqueDeviceName,
+        [ in ] IBasicDevice*        device );
+
+    [
+        version( NTDDI_WIN8 ),
+        uuid(b571c28c-a472-48d5-88d2-8adcaf1b8813)
+    ]
+    delegate HRESULT ConnectionStatusHandler(
+        [ in ] IBasicDevice* sender,
+        [ in ] ConnectionStatus arg );
+
+    [
+        version( NTDDI_WIN8 ),
+        uuid(16fd02d5-da61-49d7-aab2-76867dd42db7)
+    ]
+    delegate HRESULT TransportParametersUpdateHandler(
+        [ in ] IMediaRenderer* sender,
+        [ in ] ITransportParameters* arg );
+
+    [
+        version( NTDDI_WIN8 ),
+        uuid(3a2d9d45-72e9-4311-b46c-27c8bb7e6cb3)
+    ]
+    delegate HRESULT RenderingParametersUpdateHandler(
+        [ in ] IMediaRenderer* sender,
+        [ in ] RenderingParameters arg ); 
+
+    //////////////////////////////////////////////////////////////////////
+    //
+    // Interfaces/Classes
+    //
+    //////////////////////////////////////////////////////////////////////            
+    [
+        version( NTDDI_WIN8 ),
+        uuid(4feeb26d-50a7-402b-896a-be95064d6bff)
+    ]
+    interface IDeviceController : IInspectable
+    {
+        [ propget ] HRESULT CachedDevices( [ out, retval ] IVector< IBasicDevice >** value );
+
+        HRESULT AddDevice( [ in ] HSTRING uniqueDeviceName ); 
+
+        HRESULT RemoveDevice( [ in ] IBasicDevice* device );        
+
+        [ eventadd ] HRESULT DeviceArrival(
+            [ in ]          DeviceControllerFinderHandler*     handler,
+            [ out, retval ] EventRegistrationToken*                 token );
+
+        [ eventremove ] HRESULT DeviceArrival( [ in ] EventRegistrationToken token );
+
+        [ eventadd ] HRESULT DeviceDeparture(
+            [ in ]          DeviceControllerFinderHandler*     handler,
+            [ out, retval ] EventRegistrationToken*                 token );
+
+        [ eventremove ] HRESULT DeviceDeparture( [ in ] EventRegistrationToken token );
+    };
+    
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 ),
+        uuid(f4f26cbb-7962-48b7-80f7-c3a5d753bcb0)
+    ]
+    interface IBasicDevice : IInspectable
+    {
+        [ propget ] HRESULT FriendlyName( [ out, retval ] HSTRING* value );
+
+        [ propput ] HRESULT FriendlyName( [ in ] HSTRING value );
+
+        [ propget ] HRESULT ManufacturerName( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT ManufacturerUrl( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT UniqueDeviceName( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT ModelName( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT ModelNumber( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT ModelUrl( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT Description( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT SerialNumber( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT PresentationUrl( [ out, retval ] HSTRING* value );
+
+        [ propget ] HRESULT RemoteStreamingUrls( [ out, retval ] IVector< HSTRING >** value );
+
+        [ propget ] HRESULT PhysicalAddresses( [ out, retval ] IVector< HSTRING >** value );
+
+        [ propget ] HRESULT IpAddresses( [ out, retval ] IVector< HSTRING >** value );
+
+        [ propget ] HRESULT CanWakeDevices( [ out, retval ] boolean* value );
+
+        [ propget ] HRESULT DiscoveredOnCurrentNetwork( [ out, retval ] boolean* value );
+
+        [ propget ] HRESULT Type( [ out, retval ] Windows.Media.Streaming.DeviceTypes* value );
+
+        [ propget ] HRESULT Icons( [ out, retval ] IVector< IDeviceIcon >** value );
+
+        [ propget ] HRESULT ConnectionStatus( [ out, retval ] ConnectionStatus* value );
+
+        [ eventadd ] HRESULT ConnectionStatusChanged(
+            [ in ] ConnectionStatusHandler* handler,
+            [ out, retval ] EventRegistrationToken* token );
+
+        [ eventremove ] HRESULT ConnectionStatusChanged( [ in ] EventRegistrationToken token );
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    [version(NTDDI_WINBLUE), uuid(b64d6974-6e79-49af-9933-908b6e9a160c)]
+    interface IActiveBasicDevice : IInspectable requires IBasicDevice
+    {        
+        [propget] HRESULT MaxVolume( [out, retval] UINT32* value );
+
+        [propget] HRESULT IsMuteSupported( [ out, retval ] boolean* value );
+
+        [propget] HRESULT IsSetNextSourceSupported( [ out, retval ] boolean* value );        
+
+        [propget] HRESULT IsAudioSupported( [ out, retval ] boolean* value );
+
+        [propget] HRESULT IsVideoSupported( [ out, retval ] boolean* value );        
+
+        [propget] HRESULT IsImageSupported( [ out, retval ] boolean* value );  
+
+        [propget] HRESULT IsSearchSupported( [ out, retval ] boolean* value );  
+
+        HRESULT GetCachedSinkProtocolInfo( [ out, retval ] HSTRING* value );        
+
+        HRESULT SetCachedSinkProtocolInfo( [ in ] HSTRING value );                
+
+        HRESULT GetCachedExtraSinkProtocolInfo( [ out, retval ] HSTRING* value );        
+
+        HRESULT GetEffectiveBandwidth( [ in ] boolean transmitSpeed, [ out, retval ] ULONG64 *currentSpeed );
+
+        HRESULT GetCachedBitrateMeasurement( [ in ] GUID physicalNetworkInterface, [ out, retval ] UINT64 *bitrate );
+
+        HRESULT SetCachedBitrateMeasurement( [ in ] GUID physicalNetworkInterface, [ in ] UINT64 bitrate );     
+
+        [propget] HRESULT LogicalNetworkInterface( [ out, retval ] GUID *logicalNetworkInterface );
+
+        [propget] HRESULT PhysicalNetworkInterface( [out, retval ] GUID *physicalNetworkInterface );  
+
+        HRESULT NotifyStreamingStatus( [ in ] boolean fIsStreaming );     
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 ),
+        uuid(8ffb1a1e-023d-4de1-b556-ab5abf01929c)
+    ]
+    interface IDeviceIcon : IInspectable
+    {
+        [propget] HRESULT Width([out, retval] UINT32* value);
+        [propget] HRESULT Height([out, retval] UINT32* value);
+        [propget] HRESULT ContentType([out, retval] HSTRING *value);  
+        [propget] HRESULT Stream([out, retval] Windows.Storage.Streams.IRandomAccessStreamWithContentType** value);
+    };    
+
+    //////////////////////////////////////////////////////////////////////
+    [ 
+        version( NTDDI_WIN8 ),
+        activatable( NTDDI_WIN8 ),
+        threading(mta)
+    ]
+    runtimeclass DeviceController
+    {
+        [default] interface IDeviceController;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    [ 
+        version( NTDDI_WIN8 ),
+        activatable( NTDDI_WIN8 )
+    ]
+    runtimeclass BasicDevice
+    {
+        [default] interface IBasicDevice;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    [ 
+        version( NTDDI_WINBLUE ),
+        activatable( NTDDI_WINBLUE ),
+        static( IActiveBasicDeviceStatics, NTDDI_WINBLUE )
+    ]
+    runtimeclass ActiveBasicDevice
+    {
+        [default] interface IActiveBasicDevice;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WINBLUE ),
+        uuid(6d33255d-3642-4618-9db6-43524f4deadc)
+    ]
+    interface IActiveBasicDeviceStatics : IInspectable
+    {
+        HRESULT CreateBasicDeviceAsync(
+            [ in ] HSTRING deviceIdentifier,
+            [ in ] Windows.Media.Streaming.DeviceTypes type,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<ActiveBasicDevice>** value ); 
+
+        HRESULT CloneBasicDeviceAsync(
+            [ in ] IBasicDevice *basicDevice,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<ActiveBasicDevice>** value );                     
+
+        HRESULT GetDevicesOnMatchingNetworkAsync(
+            [ in ] IActiveBasicDevice *server,
+            [ in ] IActiveBasicDevice *renderer,
+            [ in ] boolean optimizeForProxying,
+            [ in ] boolean allowChangeRendererNetwork,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<DevicePair>** operation);    
+
+        HRESULT CreateDevicesOnMatchingNetworkAsync(
+            [ in ] HSTRING serverUDN,
+            [ in ] IActiveBasicDevice *renderer,
+            [ in ] boolean optimizeForProxying,
+            [ in ] boolean allowChangeRendererNetwork,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<DevicePair>** operation);                
+    }    
+
+    ///////////////////////////////////////////////////////////////////////////
+    [version(NTDDI_WINBLUE), uuid(f1a423f1-b7b4-449c-a90d-aea8e17c5e5f)]
+    interface IDevicePair : IInspectable
+    {
+        [propget] HRESULT Server([ out, retval ] ActiveBasicDevice** value);
+        [propget] HRESULT Renderer([ out, retval ] ActiveBasicDevice** value);
+    };
+
+    ///////////////////////////////////////////////////////////////////////////
+    [version(NTDDI_WINBLUE)]
+    runtimeclass DevicePair
+    {
+        [default] interface IDevicePair;
+    }    
+
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 ),
+        uuid(2c012ec3-d975-47fb-96ac-a6418b326d2b)
+    ]
+    interface IMediaRenderer : IInspectable requires IBasicDevice
+    {
+        [ propget ] HRESULT IsAudioSupported( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsVideoSupported( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsImageSupported( [ out, retval ] boolean* value );
+        [ propget ] HRESULT ActionInformation( [ out, retval ] IMediaRendererActionInformation** value );
+
+        HRESULT SetSourceFromUriAsync(
+            [ in ]          HSTRING             URI,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<TrackId>**    value );
+            
+        HRESULT SetSourceFromStreamAsync(
+            [ in ]          IInspectable*           stream, 
+            [ out, retval ] Windows.Foundation.IAsyncOperation<TrackId>**    value );
+            
+        HRESULT SetSourceFromMediaSourceAsync(
+            [ in ]          IInspectable*     mediaSource,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<TrackId>**    value );
+
+        HRESULT SetNextSourceFromUriAsync(
+            [ in ]          HSTRING             URI,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<TrackId>**    value );
+            
+        HRESULT SetNextSourceFromStreamAsync(
+            [ in ]          IInspectable*           stream, 
+            [ out, retval ] Windows.Foundation.IAsyncOperation<TrackId>**    value );
+            
+        HRESULT SetNextSourceFromMediaSourceAsync(
+            [ in ]          IInspectable*     mediaSource,
+            [ out, retval ] Windows.Foundation.IAsyncOperation<TrackId>**    value );
+
+        HRESULT PlayAsync( [ out, retval ] Windows.Foundation.IAsyncAction** value );
+        
+        HRESULT PlayAtSpeedAsync( 
+            [ in ]          PlaySpeed     playSpeed,
+            [ out, retval ] Windows.Foundation.IAsyncAction** value );
+
+        HRESULT StopAsync( [ out, retval ] Windows.Foundation.IAsyncAction** value );
+        
+        HRESULT PauseAsync( [ out, retval ] Windows.Foundation.IAsyncAction** value );
+
+        HRESULT GetMuteAsync( [ out, retval ] Windows.Foundation.IAsyncOperation<boolean>** value );
+        
+        HRESULT SetMuteAsync(
+            [ in ]          boolean                 mute,
+            [ out, retval ] Windows.Foundation.IAsyncAction**     value );
+
+        HRESULT GetVolumeAsync( [ out, retval ] Windows.Foundation.IAsyncOperation<UINT32>** value );
+        
+        HRESULT SetVolumeAsync(
+            [ in ]          UINT32                   volume,
+            [ out, retval ] Windows.Foundation.IAsyncAction**   value );
+
+        HRESULT SeekAsync(
+            [ in ]             Windows.Foundation.TimeSpan     target,
+            [ out, retval ]    Windows.Foundation.IAsyncAction**                value );
+
+        HRESULT GetTransportInformationAsync( [ out, retval ] Windows.Foundation.IAsyncOperation<TransportInformation>** value );
+        
+        HRESULT GetPositionInformationAsync( [ out, retval ] Windows.Foundation.IAsyncOperation<PositionInformation>** value );
+
+        [ eventadd ] HRESULT TransportParametersUpdate(
+            [ in ] TransportParametersUpdateHandler* handler,
+            [ out, retval ] EventRegistrationToken* token );
+            
+        [ eventremove ] HRESULT TransportParametersUpdate( [ in ] EventRegistrationToken token );
+
+        [ eventadd ] HRESULT RenderingParametersUpdate(
+            [ in ] RenderingParametersUpdateHandler* handler,
+            [ out, retval ] EventRegistrationToken* token );
+            
+        [ eventremove ] HRESULT RenderingParametersUpdate( [ in ] EventRegistrationToken token );
+
+        HRESULT NextAsync(
+                [ out, retval ] Windows.Foundation.IAsyncAction**               value );
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 ),
+        uuid(66fbbfee-5ab0-4a4f-8d15-e5056b26beda)
+    ]
+    interface IMediaRendererActionInformation : IInspectable
+    {
+        [ propget ] HRESULT IsMuteAvailable( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsPauseAvailable( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsPlayAvailable( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsSeekAvailable( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsSetNextSourceAvailable( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsStopAvailable( [ out, retval ] boolean* value );
+        [ propget ] HRESULT IsVolumeAvailable( [ out, retval ] boolean* value );
+        [ propget ] HRESULT PlaySpeeds( [ out, retval ] IVector< PlaySpeed >** value );
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 ),
+        uuid(eb0c4e24-2283-438d-8fff-dbe9df1cb2cc)
+    ]
+    interface ITransportParameters : IInspectable
+    {
+        [ propget ] HRESULT ActionInformation( [ out, retval ] IMediaRendererActionInformation** value );
+        [ propget ] HRESULT TrackInformation( [ out, retval ] TrackInformation* value );
+        [ propget ] HRESULT TransportInformation( [ out, retval ] TransportInformation* value );
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 )
+    ]
+    runtimeclass CreateMediaRendererOperation
+    {
+        [default] interface Windows.Foundation.IAsyncOperation<MediaRenderer*>;
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    [ 
+        version( NTDDI_WIN8 ),
+        activatable( NTDDI_WIN8 ),
+        static( IMediaRendererFactory, NTDDI_WIN8 ),
+        threading(mta)
+    ]
+    runtimeclass MediaRenderer
+    {
+        [default] interface IMediaRenderer;
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    [
+        version( NTDDI_WIN8 ),
+        uuid(657ab43d-b909-42b2-94d0-e3a0b134e8c9)
+    ]
+    interface IMediaRendererFactory : IInspectable
+    {
+        HRESULT CreateMediaRendererAsync(
+            [ in ] HSTRING deviceIdentifier,
+            [ out, retval ] CreateMediaRendererOperation** value ); 
+
+        HRESULT CreateMediaRendererFromBasicDeviceAsync(
+            [ in ] IBasicDevice *basicDevice,
+            [ out, retval ] CreateMediaRendererOperation** value ); 
+    }
+
+} // end of Windows.Media.Streaming namespace
+
+namespace Windows.Media.Streaming.Internal
+{
+    [
+        version( NTDDI_WIN8 ), 
+        uuid(19974cb1-9a1d-45c0-87cf-2c1e835a981c)
+    ]
+    interface IMediaRendererBrokerStatics : IInspectable
+    {
+        HRESULT CreateMediaRendererAsync(
+            [ in ] HSTRING deviceIdentifier,
+            [ in ] IInspectable* mediaSessionFactoryMF, 
+            [ in ] HSTRING applicationUserModelId,
+            [ out, retval ] Windows.Media.Streaming.CreateMediaRendererOperation** value );
+
+        HRESULT CreateMediaRendererFromBasicDeviceAsync(
+            [ in ] Windows.Media.Streaming.IBasicDevice *basicDevice,
+            [ in ] IInspectable* mediaSessionFactoryMF, 
+            [ in ] HSTRING applicationUserModelId,
+            [ out, retval ] Windows.Media.Streaming.CreateMediaRendererOperation** value );
+    }
+
+    [
+        version( NTDDI_WIN8 ),
+        static( IMediaRendererBrokerStatics, NTDDI_WIN8 ),
+        threading(mta)
+    ]
+    runtimeclass MediaRendererBroker 
+    {
+    }
+
+} // end of Windows.Media.Streaming.Internal namespace
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

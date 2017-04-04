@@ -1,0 +1,227 @@
+/******************************************************************************
+
+Copyright (c) Microsoft Corporation. All Rights Reserved.
+
+Synopsis:
+    IDL file to define the Authorization Plug-in Interface for the
+    Windows Update Agent.
+
+******************************************************************************/
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// UpdateEndpointAuth.h")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// Copyright (C) Microsoft Corporation. All Rights Reserved.")
+cpp_quote("//")
+cpp_quote("// THIS CODE AND INFORMATION IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF")
+cpp_quote("// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO")
+cpp_quote("// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A")
+cpp_quote("// PARTICULAR PURPOSE.")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("")
+cpp_quote("")
+cpp_quote("//---------------------------------------------------------------------------------")
+cpp_quote("// Windows Update Agent authentication client plug-in interfaces.")
+cpp_quote("// --------------------------------------------------------------------------------")
+cpp_quote("// GUIDS")
+cpp_quote("// --------------------------------------------------------------------------------")
+cpp_quote("// {1c72ac05-f0ca-49fd-91a4-fed81a9341b9}")
+cpp_quote("DEFINE_GUID(IID_UpdateEndpointProvider,0x1c72ac05,0xf0ca,0x49fd,0x91,0xa4,0xfe,0xd8,0x1a,0x93,0x41,0xb9);")
+cpp_quote("// {b18a7c5a-22cc-4390-8e14-da1ab61367d6}")
+cpp_quote("DEFINE_GUID(IID_UpdateEndpointAuthProvider,0xb18a7c5a,0x22cc,0x4390,0x8e,0x14,0xda,0x1a,0xb6,0x13,0x67,0xd6);")
+cpp_quote("// {60214134-6c24-4b5d-9766-c03e6b0a82a9}")
+cpp_quote("DEFINE_GUID(IID_UpdateEndpointAuthToken,0x60214134,0x6c24,0x4b5d,0x97,0x66,0xc0,0x3e,0x6b,0x0a,0x82,0xa9);")
+cpp_quote("// {7B52C8E7-70DE-4F60-8561-77D6774F072B}")
+cpp_quote("DEFINE_GUID(IID_UpdateEndpointAuthUserTicket,0x7B52C8E7,0x70DE,0x4F60,0x85,0x61,0x77,0xD6,0x77,0x4F,0x07,0x2B);")
+
+#ifndef DO_NO_IMPORTS
+import "oaidl.idl";
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// Enumerations
+
+[
+    v1_enum
+]
+typedef [public] enum tagUpdateEndpointAuthTokenType{
+    [helpstring("Invalid Token Type")]        ueattInvalidTokenType  = 0x0,
+    [helpstring("WS-Security SAML1.1 Token")] ueattSAML11Token       = 0x1
+} UpdateEndpointAuthTokenType;
+
+[
+    v1_enum
+]
+typedef [public] enum tagEndpointType{
+    [helpstring("ClientServer")]         uetClientServer,
+    [helpstring("Reporting")]            uetReporting,
+    [helpstring("WUASelfUpdate")]        uetWuaSelfUpdate,
+    [helpstring("Regulation")]           uetRegulation,
+    [helpstring("SimpleTargeting")]      uetSimpleTargeting,
+    [helpstring("SecuredClientServer")]  uetSecuredClientServer,
+    [helpstring("SecondaryServiceAuth")] uetSecondaryServiceAuth,
+    [helpstring("Regulation(Enhanced)")] uetEnhancedRegulation,
+
+    // NOTE: ENDPOINTTYPE_COUNT must be the last element in the list.
+    [helpstring("Invalid endpoint - used only to indicate the total no. of endpoint types supported")]     ENDPOINTTYPE_COUNT
+} UpdateEndpointType;
+
+//////////////////////////////////////////////////////////////////////////////
+// structures
+
+typedef [public] struct tagUpdateEndpointProxySettings {
+    [helpstring("Proxy Address")]       BSTR  szProxyAddr;
+    [helpstring("Bypass Proxy List")]   BSTR  szBypassList;
+    [helpstring("Username")]            BSTR  szUsername;
+    [helpstring("Password")]            BSTR  szPassword;
+} UpdateEndpointProxySettings;
+
+//////////////////////////////////////////////////////////////////////////////
+// Endpoint interfaces
+
+[
+    object,
+    uuid(1c72ac05-f0ca-49fd-91a4-fed81a9341b9),
+    pointer_default(unique),
+    local
+]
+interface IUpdateEndpointProvider: IUnknown
+{
+    [
+        helpstring(
+            "Requests an endpoint using the provided credentials.")
+    ]
+    HRESULT GetServiceEndpoint(
+                [in]  GUID                         serviceId,
+                [in]  UpdateEndpointType           endpointType,
+                [in]  UpdateEndpointProxySettings  proxySettings,
+                [in]  HANDLE_PTR                   hUserToken,
+                [in]  BOOL                         fRefreshOnline,
+                [out] BSTR*                        pbstrEndpointLoc);
+
+} // interface IUpdateEndpointProvider
+
+[
+    object,
+    uuid(60214134-6c24-4b5d-9766-c03e6b0a82a9),
+    pointer_default(unique),
+    local
+]
+interface IUpdateEndpointAuthToken: IUnknown
+{
+
+    [
+        helpstring(
+            "Gets the internal opaque wire-line Token data.")
+    ]
+    HRESULT TokenData(
+                [out] BSTR *pszTokenData);
+
+    [
+        helpstring(
+            "Gets the type of the TokenData.")
+    ]
+    HRESULT TokenType(
+            [out] UpdateEndpointAuthTokenType *pTokenType);
+
+    [
+        helpstring(
+            "Gets the Service ID the token is authenticated to.")
+    ]
+    HRESULT ServiceID(
+                [out] GUID *pServiceID);
+
+    [
+        helpstring(
+            "The key used to sign the outgoing messages")
+    ]
+    HRESULT SigningKey(
+                [in,out,unique,size_is(*pcbKeySize)] BYTE   *pbKey,
+                [in,out]                             ULONG  *pcbKeySize);
+
+    [
+        helpstring("The attached token reference used for the outgoing messages")
+    ]
+    HRESULT TokenReferenceAttached (
+                [out] BSTR *pszTokenReference);
+
+    [
+        helpstring("The unattached token reference used for the outgoing messages")
+    ]
+    HRESULT TokenReferenceUnattached (
+                [out] BSTR *pszTokenReference);
+} // interface IUpdateEndpointAuthToken
+
+[
+    object,
+    uuid(7B52C8E7-70DE-4F60-8561-77D6774F072B),
+    pointer_default(unique),
+    local
+]
+interface IUpdateEndpointAuthUserTicket : IUnknown
+{
+
+    HRESULT GetHasUserTicket(
+            [out] BOOL *pfHasUserTicket);
+} // interface IUpdateEndpointAuthUserTicket
+
+[
+    object,
+    uuid(b18a7c5a-22cc-4390-8e14-da1ab61367d6),
+    pointer_default(unique),
+    local
+]
+interface IUpdateEndpointAuthProvider: IUnknown
+{
+    [
+        helpstring(
+        "Provides configuration data to the endpoint provider.")
+    ]
+    HRESULT Initialize(
+                [in]  GUID                 serviceId,
+                [in]  BSTR                 bstrXml);
+
+    [
+        helpstring(
+        "Returns the preferred endpoint authentication token type for the endpoint.")
+    ]
+    HRESULT GetPreferredEndpointTokenTypes(
+                [in]  GUID                 serviceId,
+                [in]  UpdateEndpointType   endpointType,
+                [in]  ULONG                ulRequestedTypes,
+                [out] ULONG               *pulPreferredTokenTypes);
+    [
+        helpstring(
+            "Requests a token to the given service endpoint using the provided credentials.")
+    ]
+    HRESULT GetEndpointToken(
+                [in]   GUID                        serviceId,
+                [in]   UpdateEndpointType          endpointType,
+                [in]   UpdateEndpointProxySettings proxySettings,
+                [in]   HANDLE_PTR                  hUserToken,
+                [in]   UpdateEndpointAuthTokenType tokenType,
+                [in]   BOOL                        fRefreshOnline,
+                [in]   UINT                        cContentCategoryIds,
+                [in, size_is(cContentCategoryIds)] const GUID *rgContentCategoryIds,
+                [out]  IUnknown                  **ppEndpointToken);
+
+} // interface IUpdateEndpointAuthProvider
+
+[
+    object,
+    uuid(2102F199-D308-43EC-A8BF-3206A3743069),
+    pointer_default(unique),
+    local
+]
+interface IADFSToken: IUnknown
+{
+    [
+        helpstring(
+            "Requests a token to the given service endpoint using the provided credentials.")
+    ]
+    HRESULT GetADFSToken(
+        [in] BSTR user,
+        [in] BSTR pass,
+        [in] BSTR realm, // The endpoint for which the token is being requested for
+        [out, retval] BSTR *token);
+} // interface IADFSToken
+
