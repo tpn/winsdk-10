@@ -1,0 +1,21 @@
+TARGETNAME = adp_ext
+TARGETTYPE = DYNLINK
+_NT_TARGET_VERSION=$(_NT_TARGET_VERSION_WIN7)
+
+DLLENTRY = _DllMainCRTStartup
+
+TARGETLIBS = \
+        $(SDK_LIB_PATH)\kernel32.lib \
+        $(SDK_LIB_PATH)\dbgeng.lib
+
+USE_MSVCRT = 1
+
+UMTYPE = windows
+
+MSC_WARNING_LEVEL = /W4 /WX
+
+SOURCES = \
+        dbgexts.cpp \
+        adp_ext.cpp \
+        adp_ext.rc
+

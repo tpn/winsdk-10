@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace = "IsKnonwExtensionCommand"
+    xmlns:dbg = "IsKnonwExtensionCommand"
+    elementFormDefault = "qualified">
+ 
+   <xs:complexType name="functiontype">
+     <xs:sequence>
+       <xs:element name="function" type="xs:string" minOccurs="1" maxOccurs="unbounded"/>
+     </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="stacktype">
+    <xs:sequence>
+      <xs:element name="exception" type="xs:hexBinary"/>
+      <xs:element name="stop" type="xs:hexBinary"/>
+      <xs:element name="action" type="xs:hexBinary"/>
+      <xs:element name="command" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="functions" type="dbg:functiontype"/>
+    </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="stackstype">
+    <xs:sequence>
+      <xs:element name="unknowncommand" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="stack" type="dbg:stacktype" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+   </xs:complexType>
+
+   <xs:element name="stacks" type="dbg:stackstype">
+   </xs:element>
+
+</xs:schema>

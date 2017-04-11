@@ -1,0 +1,17 @@
+MSC_WARNING_LEVEL=/W3 /WX
+TARGETNAME=simple
+TARGETTYPE=DYNLINK
+
+_NT_TARGET_VERSION=$(_NT_TARGET_VERSION_WIN7)
+
+DLLENTRY=_DllMainCRTStartup
+
+TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib 
+
+USE_MSVCRT=1
+
+UMTYPE=windows
+
+SOURCES= simple.c   \
+         exts.c     \
+         simple.rc

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<dbg:stacks  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns:dbg='IsKnownExtensionCommand'
+    xsi:schemaLocation='IsKnonwExtensionCommand continue_known.xsd'>
+  <!--
+  the <unknowncommand> tag specifies the command to execute
+  for all the exceptions that are not recognized.
+  Example: if you hook `!analyze -c' to the `av' exception then,
+  for all the Access Violations that do not have a to be continued stack trace, 
+  the unknown-exception-command is executed
+  -->
+  <dbg:unknowncommand>!analyze -v;kb 100</dbg:unknowncommand>
+  <dbg:stack>
+    <dbg:exception>c0000005</dbg:exception>
+    <dbg:stop>0</dbg:stop>
+    <!-- actions:
+    0 : no action taken, it disables the 'continue' feature
+    1 : default action is taken, that is execution is continued
+    2 : the command specified in the command tag is executed
+    -->
+    <dbg:action>1</dbg:action>
+    <!--
+    <dbg:action>2</dbg:action>
+    <dbg:command>r;kb 50</dbg:command>
+    -->
+    <dbg:functions>
+      <dbg:function>kernel32!LocalLock+24</dbg:function>
+      <dbg:function>COMCTL32!Ordinal384+595c</dbg:function>
+      <dbg:function>COMCTL32!Ordinal384+3c57d</dbg:function>
+      <dbg:function>COMCTL32!Ordinal384+3dac6</dbg:function>
+      <dbg:function>COMCTL32!Ordinal384+3f1d1</dbg:function>
+      <dbg:function>COMCTL32!Ordinal384+85d7</dbg:function>
+      <dbg:function>USER32!InternalCallWinProc+1b</dbg:function>
+      <dbg:function>USER32!UserCallWinProcCheckWow+151</dbg:function>
+      <dbg:function>USER32!DispatchClientMessage+d9</dbg:function>
+    </dbg:functions>
+  </dbg:stack>
+</dbg:stacks>

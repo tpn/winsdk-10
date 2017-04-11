@@ -1,0 +1,58 @@
+MSC_WARNING_LEVEL=/W4 /WX
+
+TARGETNAME=ExdiKdSample
+TARGETTYPE=DYNLINK
+
+MIDL_FLAGS=$(MIDL_FLAGS) /I ..\..\..\..\external\exdi
+
+_NT_TARGET_VERSION=$(_NT_TARGET_VERSION_WIN7)
+
+USE_LIBCMT=1
+USE_NATIVE_EH=1
+USE_STL=1
+STL_VER=100
+
+USE_ATL=1
+ATL_VER=70
+!if "$(DBGSDK_REF_PATH)" == ""
+DBGSDK_REF_PATH=$(SDKTOOLS_REF_PATH)
+!endif
+
+SOURCES=\
+	dllmain.cpp \
+	ExdiKdSample.idl \
+	ExdiKdSample.cpp \
+	LiveExdiSampleServer.cpp \
+	StaticExdiSampleServer.cpp  \
+	$(O)\ExdiKdSample_i.c \
+	ExdiKdSample.rc
+	
+TARGETLIBS=\
+	$(SDK_LIB_PATH)\kernel32.lib \
+	$(SDK_LIB_PATH)\user32.lib \
+	$(SDK_LIB_PATH)\advapi32.lib \
+	$(SDK_LIB_PATH)\ole32.lib \
+	$(SDK_LIB_PATH)\oleaut32.lib \
+	$(SDK_LIB_PATH)\uuid.lib \
+	$(PROJECT_OBJ_ROOT)\debuggers\samples\exdi\ExdiKdSample\KdControllerLib\$(O)\KdControllerLib.lib
+
+INCLUDES = \
+    ..\KDControllerLib; \
+    $(INCLUDES)
+
+# We ship samples as source code projects. Need to binplace in test dir to support running funcional tests
+# against these samples.
+PASS2_BINPLACE=\
+	-:DEST dbg\test  $(OBJ_PATH)\$(O)\$(TARGETNAME).dll \
+
+PASS0_BINPLACE = \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample\ExdiKdSample *.cpp \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample\ExdiKdSample *.h \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample\ExdiKdSample *.rgs \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample\ExdiKdSample *.txt \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample\ExdiKdSample ExdiKdSample.* \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample\ExdiKdSample product.* \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample\ExdiKdSample sources \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample ..\dirs \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample ..\ExdiKdSample.sln \
+    -:DEST $(DBG_PRI_LAYOUT)\sdk\samples\exdi\ExdiKdSample ..\readme.docx \

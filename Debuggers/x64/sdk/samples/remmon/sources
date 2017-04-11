@@ -1,0 +1,22 @@
+TARGETNAME = remmon
+TARGETTYPE = PROGRAM
+UMENTRY=wmain 
+
+_NT_TARGET_VERSION=$(_NT_TARGET_VERSION_WIN7)
+
+TARGETLIBS = \
+        $(SDK_LIB_PATH)\dbgeng.lib\
+        $(SDK_LIB_PATH)\kernel32.lib
+
+USE_MSVCRT = 1
+
+SOURCES = \
+        extr.cpp\
+        out.cpp\
+        remmon.cpp
+
+MSC_WARNING_LEVEL = /W4 /WX
+
+UMTYPE = console
+
+C_DEFINES=-DUNICODE -D_UNICODE

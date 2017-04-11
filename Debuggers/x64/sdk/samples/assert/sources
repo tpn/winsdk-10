@@ -1,0 +1,18 @@
+TARGETNAME = assert
+TARGETTYPE = PROGRAM
+
+_NT_TARGET_VERSION=$(_NT_TARGET_VERSION_WIN7)
+
+TARGETLIBS = \
+        $(SDK_LIB_PATH)\dbgeng.lib\
+        $(SDK_LIB_PATH)\kernel32.lib
+
+USE_MSVCRT = 1
+
+SOURCES = \
+        assert.cpp\
+        out.cpp
+
+MSC_WARNING_LEVEL = /W4 /WX
+
+UMTYPE = console
