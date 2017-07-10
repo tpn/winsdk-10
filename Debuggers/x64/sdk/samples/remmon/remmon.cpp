@@ -50,7 +50,7 @@ public:
         THIS_
         _Out_ PULONG Mask
         );
-    
+
     STDMETHOD(ChangeEngineState)(
         THIS_
         _In_ ULONG Flags,
@@ -110,7 +110,7 @@ EventCallbacks::ChangeEngineState(
             g_ExitDispatchClient->ExitDispatch(g_Client);
         }
     }
-    
+
     return S_OK;
 }
 
@@ -155,7 +155,7 @@ Exit(_In_ int Code,
         vfwprintf(stderr, Format, Args);
         va_end(Args);
     }
-    
+
     exit(Code);
 }
 
@@ -307,7 +307,7 @@ WaitForBreakIn(void)
     }
 
     printf("Waiting for break-in...\n");
-    
+
     while (g_ExecStatus != DEBUG_STATUS_BREAK)
     {
         // Wait for the server to enter the break-in state.
@@ -343,7 +343,7 @@ ExecuteExtensionCommand(void)
     // the extension that the session is active and
     // accessible.
     g_Ext.NotifyAccessible();
-    
+
     // Install our output callbacks so that
     // we can display any output the extension
     // produces.
@@ -357,7 +357,7 @@ ExecuteExtensionCommand(void)
     wprintf(L"Executing extension '%s'\n", g_Command);
 
     HRESULT ExtStatus;
-    
+
     char szCommand[MAX_PATH], szArgs[MAX_PATH];
 
     sprintf_s(szCommand, ARRAYSIZE(szCommand), "%ls", g_Command);
@@ -372,7 +372,7 @@ ExecuteExtensionCommand(void)
 
     // The extension return value is usually
     // uninteresting so don't bother displaying it.
-    
+
     g_Ext.Unload();
 }
 
@@ -391,7 +391,7 @@ wmain(_In_ int Argc,
     ParseCommandLine(Argc, Argv);
 
     CreateInterfaces();
-    
+
     WaitForBreakIn();
 
     if (g_ExtDll)
