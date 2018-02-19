@@ -1,0 +1,175 @@
+// new standard header for Microsoft
+#pragma once
+#ifndef _NEW_
+#define _NEW_
+#ifndef RC_INVOKED
+#include <exception>
+
+#ifdef  _MSC_VER
+#pragma pack(push,_CRT_PACKING)
+#pragma warning(push,3)
+
+  #pragma push_macro("new")
+#endif  /* _MSC_VER */
+
+  #undef new
+
+
+#include <crtdefs.h>
+
+#if defined (_HAS_EXCEPTIONS)
+#if !_HAS_EXCEPTIONS
+#error "_HAS_EXCEPTIONS == 0 is not supported."
+#endif
+#endif
+
+_STD_BEGIN
+
+extern __declspec(selectany) const char * _bad_alloc_Message = _MESG("bad allocation");
+
+		// CLASS bad_alloc
+class bad_alloc
+	: public exception
+	{	// base of all bad allocation exceptions
+public:
+	bad_alloc(const char *_Message) _THROW0()
+		: exception(_Message)
+		{	// construct from message string
+		}
+
+	bad_alloc() _THROW0()
+#if defined (_X86_)
+		{
+		__SetExceptionString(this, _bad_alloc_Message);
+		}
+#else /* _SYSCRT */
+		: exception(_bad_alloc_Message, 1)
+		{	// construct from message string with no memory allocation
+		}
+#endif /* _SYSCRT */
+
+	virtual __CLR_OR_THIS_CALL ~bad_alloc() _THROW0()
+		{	// destroy the object
+		}
+#if !_HAS_EXCEPTIONS || (!defined (_MANAGED))
+//
+// _SYSCRT is here to temporarily unify STL 6 and 7.
+// Eventually it should be && !defined(_SYSCRT).
+// Note that this is for more than the usual amount of rare STL 6/7 mixed linking with this type.
+// bad_alloc is thrown by thrownew.obj, of which there is only one -- STL 6.
+//
+protected:
+	virtual void _Doraise() const
+		{	// perform class-specific exception handling
+		_RAISE(*this);
+		}
+#endif  /* _HAS_EXCEPTIONS */
+
+	};
+
+		// SUPPORT TYPES
+ #if !defined(_INC_NEW) || !defined(_MSC_EXTENSIONS)
+typedef void (__cdecl *new_handler)();	// handler for operator new failures
+ #endif /* !defined(_INC_NEW) || !defined(_MSC_EXTENSIONS) */
+
+ #ifndef __NOTHROW_T_DEFINED
+struct nothrow_t
+	{	// placement new tag type to suppress exceptions
+	};
+
+extern const nothrow_t nothrow;	// constant for placement new tag
+ #endif /* __NOTHROW_T_DEFINED */
+
+// WINCRT: <new.h> disables new handlers in managed code. This declaration needs to match that of new_handler above
+#if !defined(_INC_NEW) || !defined(_MSC_EXTENSIONS)
+		// FUNCTION AND OBJECT DECLARATIONS
+_CRTIMP2 new_handler __cdecl set_new_handler(new_handler)
+	_THROW0();	// establish alternate new handler
+#endif
+_STD_END
+
+		// new AND delete DECLARATIONS (NB: NOT IN std)
+#pragma prefast(suppress: __WARNING_UNMATCHED_DECL_FIRST, "Can't put attributes on compiler builtins")
+void __CRTDECL operator delete(_Pre_maybenull_ void *) _THROW0();
+_Ret_notnull_ _Post_writable_byte_size_(_Size)
+void *__CRTDECL operator new(size_t _Size) _THROW1(std::bad_alloc);
+
+ #ifndef __PLACEMENT_NEW_INLINE
+  #define __PLACEMENT_NEW_INLINE
+_Ret_notnull_ _Post_writable_byte_size_(_Size)
+inline void *__CRTDECL operator new(size_t _Size, void *_Where) _THROW0()
+	{	// construct array with placement at _Where
+	(_Size);  // unreferenced parameter
+	return (_Where);
+	}
+
+#pragma prefast(suppress: __WARNING_UNMATCHED_DECL_FIRST, "Can't put attributes on compiler builtins")
+inline void __CRTDECL operator delete(_Pre_maybenull_ void *, void *) _THROW0()
+	{	// delete if placement new fails
+	}
+ #endif /* __PLACEMENT_NEW_INLINE */
+
+ #ifndef __PLACEMENT_VEC_NEW_INLINE
+  #define __PLACEMENT_VEC_NEW_INLINE
+_Ret_notnull_ _Post_writable_byte_size_(_Size)
+inline void *__CRTDECL operator new[](size_t _Size, void *_Where) _THROW0()
+	{	// construct array with placement at _Where
+	(_Size);  // unreferenced parameter
+	return (_Where);
+	}
+
+#pragma prefast(suppress: __WARNING_UNMATCHED_DECL_FIRST, "Can't put attributes on compiler builtins")
+inline void __CRTDECL operator delete[](_Pre_maybenull_ void *, void *) _THROW0()
+	{	// delete if placement array new fails
+	}
+ #endif /* __PLACEMENT_VEC_NEW_INLINE */
+
+#pragma prefast(suppress: __WARNING_UNMATCHED_DECL_FIRST, "Can't put attributes on compiler builtins")
+void __CRTDECL operator delete[](_Pre_maybenull_ void *) _THROW0();	// delete allocated array
+
+_Ret_notnull_ _Post_writable_byte_size_(_Size)
+void *__CRTDECL operator new[](size_t _Size)
+	_THROW1(std::bad_alloc);	// allocate array or throw exception
+
+ #ifndef __NOTHROW_T_DEFINED
+  #define __NOTHROW_T_DEFINED
+_Ret_notnull_ _Post_writable_byte_size_(_Size)
+void *__CRTDECL operator new(size_t _Size, const std::nothrow_t&)
+	_THROW0();
+
+_Ret_notnull_ _Post_writable_byte_size_(_Size)
+void *__CRTDECL operator new[](size_t _Size, const std::nothrow_t&)
+	_THROW0();	// allocate array or return null pointer
+
+#pragma prefast(suppress: __WARNING_UNMATCHED_DECL_FIRST, "Can't put attributes on compiler builtins")
+void __CRTDECL operator delete(_Pre_maybenull_ void *, const std::nothrow_t&)
+	_THROW0();	// delete if nothrow new fails -- REPLACEABLE
+
+#pragma prefast(suppress: __WARNING_UNMATCHED_DECL_FIRST, "Can't put attributes on compiler builtins")
+void __CRTDECL operator delete[](_Pre_maybenull_ void *, const std::nothrow_t&)
+	_THROW0();	// delete if nothrow array new fails -- REPLACEABLE
+ #endif /* __NOTHROW_T_DEFINED */
+
+
+
+ #if !defined(_INC_NEW) || !defined(_MSC_EXTENSIONS)
+using std::new_handler;
+ #endif /* !defined(_INC_NEW) || !defined(_MSC_EXTENSIONS) */
+
+#ifdef  _MSC_VER
+  #pragma pop_macro("new")
+
+#pragma warning(pop)
+#pragma pack(pop)
+#endif  /* _MSC_VER */
+
+#endif /* RC_INVOKED */
+#endif /* _NEW_ */
+
+/*
+ * Copyright (c) 1992-2004 by P.J. Plauger.  ALL RIGHTS RESERVED.
+ * Consult your license regarding permissions and restrictions.
+ V4.03:0009 */
+// The file \sdpublic\sdk\inc\crt\_70_new was reviewed by LCA in June 2011 and per license is
+//   acceptable for Microsoft use under Dealpoint ID 46582, 201971
+/* 88bf0570-3001-4e78-a5f2-be5765546192 */ 

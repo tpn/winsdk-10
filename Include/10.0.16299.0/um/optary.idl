@@ -1,0 +1,96 @@
+//+---------------------------------------------------------------------------
+//
+//  Microsoft Windows
+//  Copyright (C) Microsoft Corporation, 1992-1998.
+//
+//  File:       optary.idl
+//
+//  Contents:   IOptionArray interfaces
+//
+//  Classes:
+//
+//  Functions:
+//
+//  History:    08-07-97   DBau (David Bau)   Created
+//
+//----------------------------------------------------------------------------
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// optary.h")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("// (C) Copyright 1995-1998 Microsoft Corporation.  All Rights Reserved.")
+cpp_quote("//")
+cpp_quote("// THIS CODE AND INFORMATION IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF")
+cpp_quote("// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO")
+cpp_quote("// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A")
+cpp_quote("// PARTICULAR PURPOSE.")
+cpp_quote("//=--------------------------------------------------------------------------=")
+cpp_quote("")
+cpp_quote("#pragma comment(lib,\"uuid.lib\")")
+cpp_quote("")
+cpp_quote("//---------------------------------------------------------------------------=")
+cpp_quote("// IOptionArray Interface.")
+cpp_quote("")
+
+import "objidl.idl";
+import "oleidl.idl";
+
+interface IOptionArray;
+
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation, 1995-1998.
+//
+//  Contents:  IOptionArray interface definition
+//
+//----------------------------------------------------------------------------
+
+cpp_quote("#ifndef _LPOPTIONARRAY_DEFINED")
+cpp_quote("#define _LPOPTIONARRAY_DEFINED")
+
+[object, uuid(22b6d492-0f88-11d1-ba19-00c04fd912d0), pointer_default(unique)]
+interface IOptionArray : IUnknown
+{
+	typedef [unique] IOptionArray *LPOPTIONARRAY;
+
+    HRESULT QueryOption(
+            [in]                    DWORD  dwOption,
+            [out, size_is(*pcbBuf)] BYTE  *pBuffer,
+            [in, out]               ULONG *pcbBuf);
+
+    HRESULT SetOption(
+            [in]                    DWORD dwOption,
+            [in, size_is(cbBuf)]    BYTE  *pBuffer,
+            [in]                    ULONG cbBuf);
+}
+
+//+---------------------------------------------------------------------------
+//
+//  Copyright (C) Microsoft Corporation, 1995-1998.
+//
+//  Contents:  IHtmlLoadOptions interface definition
+//
+//----------------------------------------------------------------------------
+
+cpp_quote("// HTMLLoadOptions CLSID")
+cpp_quote("EXTERN_C const CLSID CLSID_HTMLLoadOptions; // {18845040-0fa5-11d1-ba19-00c04fd912d0}")
+
+[object, uuid(a71a0808-0f88-11d1-ba19-00c04fd912d0), pointer_default(unique)]
+interface IHtmlLoadOptions : IOptionArray
+{
+    typedef enum
+    {
+        HTMLLOADOPTION_CODEPAGE         = 0x00000000, // default codepage, 4 bytes
+        HTMLLOADOPTION_INETSHORTCUTPATH = 0x00000001, // Path to Shortcut, Wide Char String Variable size
+        HTMLLOADOPTION_HYPERLINK        = 0x00000002, // true if true hyperlink load (not init subframe load), 4 bytes
+        HTMLLOADOPTION_FRAMELOAD        = 0x00000003, // unused - to be removed
+        HTMLLOADOPTION_NEWWINDOWFLAGS   = 0x00000004, // nwmf flags for newwindow3 event
+        HTMLLOADOPTION_CONTEXTURL       = 0x00000005, // context url, for new windows
+        HTMLLOADOPTION_USERACTIONID     = 0x00000006, // unique ID (per thread) for user initiated actions
+        HTMLLOADOPTION_OVERRIDE_FLAGS   = 0x00000007, // unique ID (per thread) for user initiated actions
+        HTMLLOADOPTION_NAVIGATION_FLAGS = 0x00000008, // FHL2_* flags
+        HTMLLOADOPTION_DELEGATION_FLAGS = 0x00000010, // Delegation flags
+    } HTMLLOADOPTION;
+}
+
+cpp_quote("#endif")
+

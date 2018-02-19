@@ -1,0 +1,29 @@
+// cstddef standard header
+#ifndef _CSTDDEF_
+#define _CSTDDEF_
+#ifdef _STD_USING
+ #undef _STD_USING
+ #include <stddef.h>
+ #define _STD_USING
+#else
+ #include <stddef.h>
+#endif /* _STD_USING */
+#endif /* _CSTDDEF_ */
+
+ #if _GLOBAL_USING && !defined(RC_INVOKED)
+_STD_BEGIN
+using _CSTD ptrdiff_t; using _CSTD size_t;
+
+ #if _HAS_CPP0X
+typedef double max_align_t;	// most aligned type
+ #endif /* _HAS_CPP0X */
+_STD_END
+ #endif /* _GLOBAL_USING */
+
+/*
+ * Copyright (c) 1994 by P.J. Plauger.  ALL RIGHTS RESERVED. 
+ * Consult your license regarding permissions and restrictions.
+ */
+// The file \sdpublic\sdk\inc\crt\cstddef was reviewed by LCA in June 2011 and per license is
+//   acceptable for Microsoft use under Dealpoint ID 46582, 201971
+/* 88bf0570-3001-4e78-a5f2-be5765546192 */ 
